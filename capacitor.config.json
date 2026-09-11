@@ -1,0 +1,7 @@
+{
+  "appId": "com.ewaste.marketplace",
+  "appName": "E-Waste Marketplace",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}
