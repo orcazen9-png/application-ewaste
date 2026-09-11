@@ -6,7 +6,8 @@ export const MATERIALS = [
 export const LOCALITIES = ['Mumbai','Thane','Navi Mumbai'];
 export const newId = (prefix) => `${prefix}-${crypto.randomUUID()}`;
 export const shortId = id => id ? `LOT-${id.split('-')[1].slice(0,6).toUpperCase()}` : '';
-export const dayKey = date => new Date(date).toISOString().slice(0,10);
+// Market days follow India Standard Time, including around UTC midnight.
+export const dayKey = date => new Date(new Date(date).getTime()+19800000).toISOString().slice(0,10);
 export function random(seed) { let x=seed|0; x^=x<<13; x^=x>>>17; x^=x<<5; return {seed:x>>>0,value:(x>>>0)/4294967296}; }
 export function createState(now = new Date().toISOString()) {
   let seed=891231, prices=[];
@@ -60,8 +61,9 @@ export function saveLot(state,input,{publish=false,now=new Date().toISOString()}
   if(!LOCALITIES.includes(input.locality))throw new Error('Choose a supported locality.');
   if(publish){if(!input.materialId)throw new Error('Choose a material.');if(!parseWeight(input.weight))throw new Error('Enter a positive weight, up to 50,000 kg, with at most 3 decimal places.');if(!input.photoId)throw new Error('Add a material photo before listing.');}
   const commercialChange=existing&&(existing.materialId!==input.materialId||existing.weight!==input.weight||existing.locality!==input.locality);
-  const estimate=existing&&!commercialChange?existing.estimate:valuation(state,input.materialId,input.locality,input.weight);
-  const lot={...existing,id:input.id||newId('lot'),collectorId:state.collector.id,materialId:input.materialId||'',locality:input.locality,weight:String(input.weight??''),estimatedGrams:parseWeight(input.weight),description:String(input.description||'').slice(0,500),condition:input.condition||'unsorted',photoId:input.photoId||null,estimate,originalEstimate:existing?.originalEstimate||(publish?estimate:null),valuationHistory:[...(existing?.valuationHistory||[]),...(estimate&&(!existing||commercialChange)?[{...estimate,capturedAt:now}]:[])],status:publish?'listed':existing?.status||'draft',storage:'device',createdAt:existing?.createdAt||now,updatedAt:now,version:(existing?.version||0)+1,isSample:false};
+  const firstListing=publish&&existing?.status!=='listed';
+  const estimate=existing&&!commercialChange&&!firstListing?existing.estimate:valuation(state,input.materialId,input.locality,input.weight);
+  const lot={...existing,id:input.id||newId('lot'),collectorId:state.collector.id,materialId:input.materialId||'',locality:input.locality,weight:String(input.weight??''),estimatedGrams:parseWeight(input.weight),description:String(input.description||'').slice(0,500),condition:input.condition||'unsorted',photoId:input.photoId||null,estimate,originalEstimate:existing?.originalEstimate||(publish?estimate:null),valuationHistory:[...(existing?.valuationHistory||[]),...(estimate&&(!existing||commercialChange||firstListing)?[{...estimate,capturedAt:now}]:[])],status:publish?'listed':existing?.status||'draft',storage:'device',createdAt:existing?.createdAt||now,updatedAt:now,version:(existing?.version||0)+1,isSample:false};
   if(commercialChange)for(const offer of state.offers.filter(o=>o.lotId===lot.id&&o.status==='pending'))offer.status='invalidated';
   state.lots=state.lots.filter(l=>l.id!==lot.id);state.lots.unshift(lot);
   state.events.push({id:newId('event'),lotId:lot.id,type:publish&&existing?.status!=='listed'?'listed':existing?'updated':'created',at:now,actor:state.collector.id,simulated:false});

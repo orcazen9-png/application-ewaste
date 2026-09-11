@@ -46,7 +46,18 @@ The repository contains source and tests only. User-created lot photos and recor
 
 ## Android
 
-The Android wrapper uses Capacitor and packages the same `dist/` assets. Android build setup and APK instructions are added alongside the generated wrapper.
+The Android wrapper uses Capacitor and packages the same `dist/` assets. Every push to `main` runs the **Build Android APK** GitHub workflow. After it succeeds, download `ewaste-android-debug` from that run’s artifacts, extract it, and install `app-debug.apk` on Android 7 or newer.
+
+For local Android builds, install the JDK/Android SDK required by [Capacitor’s environment setup](https://capacitorjs.com/docs/getting-started/environment-setup), then run:
+
+```sh
+npm run android:sync
+npm run android:open
+```
+
+The APK is a debug build for testing. It is not a Play Store release. Device installation, camera permissions, and Android speech availability still require real-phone verification. Generated artifacts are retained by GitHub Actions for 14 days.
+
+The current Capacitor CLI dependency tree has three moderate audit findings in its iOS build tooling (`xcode`/`uuid`). The shipped web app has no such runtime dependencies; Android and web build checks pass. Review the build-tool dependency update before production release.
 
 ## Demo limitations
 

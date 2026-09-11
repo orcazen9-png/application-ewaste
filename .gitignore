@@ -4,6 +4,10 @@ node_modules/
 !.env.example
 .sites-runtime/
 work/
+# Kept local pending explicit approval for public publication.
+docs/PRD.md
+*.jks
+*.keystore
 android/.gradle/
 android/local.properties
 android/**/build/
