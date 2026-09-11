@@ -11,3 +11,6 @@ docs/PRD.md
 android/.gradle/
 android/local.properties
 android/**/build/
+dist/client/
+dist/server/
+dist/.openai/

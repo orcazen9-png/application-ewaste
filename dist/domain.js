@@ -72,6 +72,7 @@ export function saveLot(state,input,{publish=false,now=new Date().toISOString()}
 export function cancelLot(state,id,now=new Date().toISOString()) {
   const lot=state.lots.find(l=>l.id===id);if(!lot)throw new Error('Lot not found.');if(lot.status==='cancelled')return lot;
   if(!['draft','listed'].includes(lot.status))throw new Error('This lot cannot be cancelled.');lot.status='cancelled';lot.version++;lot.updatedAt=now;
+  for(const offer of state.offers.filter(o=>o.lotId===id&&o.status==='pending'))offer.status='invalidated';
   state.events.push({id:newId('event'),lotId:id,type:'cancelled',at:now,actor:state.collector.id,simulated:false});return lot;
 }
 export function ledger(state) {
