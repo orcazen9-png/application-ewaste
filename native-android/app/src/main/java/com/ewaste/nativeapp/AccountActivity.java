@@ -40,6 +40,7 @@ public class AccountActivity extends AppCompatActivity {
     final ExecutorService tasks=Executors.newSingleThreadExecutor();
     private static final String TAXONOMY="106-draft-v1";
     private static final int GREEN=0xff125b46,INK=0xff1e3028,BG=0xfff4f7f4;
+    final ActivityResultLauncher<String> notificationPermission=registerForActivityResult(new ActivityResultContracts.RequestPermission(),allowed->{if(allowed)NotificationJob.schedule(this);});
     final ActivityResultLauncher<String[]> documentPicker=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(market!=null)market.finance.document(uri);});
     final ActivityResultLauncher<String[]> gallery=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(uri!=null)processPhoto(uri,account(),screen.equals("market")&&market.view().equals("evidence")?market.logistics.context():draft==null?"":draft.optString("id"));});
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
@@ -57,7 +58,7 @@ public class AccountActivity extends AppCompatActivity {
                 itemIndex=saved.getInt("itemIndex",0);if(session!=null&&screen.equals("market"))market.restore();
             }
             getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}});
-            drainRevocations();render();if(session!=null)refresh();
+            drainRevocations();render();if(session!=null){NotificationJob.schedule(this);if(getIntent().getBooleanExtra("openInbox",false))market.load("inbox","/notifications");else refresh();}
         }catch(Exception error){showError(error);}
     }
     @Override protected void onSaveInstanceState(Bundle out){
@@ -70,6 +71,9 @@ public class AccountActivity extends AppCompatActivity {
     @Override protected void onDestroy(){tasks.submit(()->store.close());tasks.shutdown();super.onDestroy();}
     String account(){return session==null?"":session.optJSONObject("user").optString("id");}
     String token(){return session==null?"":session.optString("token");}
+    String language(){return session==null?selectedLanguage:session.optJSONObject("user").optString("language","en");}
+    String t(String source){return Translations.text(this,language(),source);}
+    String localDate(String value){return Translations.date(language(),value);}
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     LinearLayout column(){LinearLayout value=new LinearLayout(this);value.setOrientation(LinearLayout.VERTICAL);return value;}
     void label(String value,int size){TextView text=new TextView(this);text.setText(value);text.setTextColor(INK);text.setTextSize(size);text.setPadding(0,dp(8),0,dp(8));page.addView(text);}
@@ -96,38 +100,39 @@ public class AccountActivity extends AppCompatActivity {
         try {
             if(session==null){signIn();return;}
             if(screen.equals("edit")&&draft!=null)editor();else if(screen.equals("profile"))profile();else if(screen.equals("market"))market.render();else home();
-        }catch(Exception error){label("Your saved drafts are kept. "+message(error),15);}
-        if(working)label("Connecting…",14);
+        }catch(Exception error){label(t("Your saved drafts are kept. ")+message(error),15);}
+        if(working)label(t("Connecting…"),14);
     }
     void signIn(){
         if(BuildConfig.INVITATION_SIGN_IN){
-            label("Sign in with your invitation",21);
-            label("Use the personal invitation supplied by Freedom Value. Your account role is already assigned.",16);
-            EditText invite=field("Invitation code","","account-invitation",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD,68,null);invite.setSaveEnabled(false);
-            button("Sign in","account-redeem",()->{try{
-                JSONObject input=new JSONObject().put("code",invite.getText().toString().trim());
+            choices(t("Preferred language"),new String[]{"English","हिन्दी","मराठी"},Arrays.asList("en","hi","mr").indexOf(selectedLanguage),position->{String next=new String[]{"en","hi","mr"}[position];if(!selectedLanguage.equals(next)){selectedLanguage=next;render();}});
+            label(t("Sign in with your invitation"),21);
+            label(t("Use the personal invitation supplied by Freedom Value. Your account role is already assigned."),16);
+            EditText invite=field(t("Invitation code"),"","account-invitation",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD,68,null);invite.setSaveEnabled(false);
+            button(t("Sign in"),"account-redeem",()->{try{
+                JSONObject input=new JSONObject().put("code",invite.getText().toString().trim()).put("language",selectedLanguage);
                 task(()->api.request("POST","/auth/invitation","",input),result->{try{applySession(result);refresh();}catch(Exception e){showError(e);}});
             }catch(Exception e){showError(e);}});
-            label("Invitations work once. If you sign out or change phones, request a new invitation. Mobile number verification is not enabled in this demo.",14);return;
+            label(t("Invitations work once. If you sign out or change phones, request a new invitation. Mobile number verification is not enabled in this demo."),14);return;
         }
-        label(challengeId.isEmpty()?"Sign in with your mobile number":"Enter the code sent to your phone",21);
+        label(challengeId.isEmpty()?t("Sign in with your mobile number"):t("Enter the code sent to your phone"),21);
         if(challengeId.isEmpty()){
-            field("Mobile number",phone,"account-phone",InputType.TYPE_CLASS_PHONE,24,value->phone=value);
-            choices("I am a",new String[]{"Local collector","Recycler"},selectedRole.equals("collector")?0:1,position->selectedRole=position==0?"collector":"recycler");
-            choices("Preferred language",new String[]{"English","हिन्दी","मराठी"},Arrays.asList("en","hi","mr").indexOf(selectedLanguage),position->selectedLanguage=new String[]{"en","hi","mr"}[position]);
-            button("Send verification code","account-send-code",this::sendCode);
+            field(t("Mobile number"),phone,"account-phone",InputType.TYPE_CLASS_PHONE,24,value->phone=value);
+            choices(t("I am a"),new String[]{t("Local collector"),t("Recycler")},selectedRole.equals("collector")?0:1,position->selectedRole=position==0?"collector":"recycler");
+            choices(t("Preferred language"),new String[]{"English","हिन्दी","मराठी"},Arrays.asList("en","hi","mr").indexOf(selectedLanguage),position->selectedLanguage=new String[]{"en","hi","mr"}[position]);
+            button(t("Send verification code"),"account-send-code",this::sendCode);
         }else{
-            label(phone,16);EditText code=field("Verification code","","account-code",InputType.TYPE_CLASS_NUMBER,10,null);
+            label(phone,16);EditText code=field(t("Verification code"),"","account-code",InputType.TYPE_CLASS_NUMBER,10,null);
             code.setSaveEnabled(false);
-            button("Verify and sign in","account-verify",()->{
+            button(t("Verify and sign in"),"account-verify",()->{
                 try {JSONObject input=new JSONObject().put("challengeId",challengeId).put("code",code.getText().toString());
                     task(()->api.request("POST","/auth/verify","",input),result->{try{applySession(result);refresh();}catch(Exception e){showError(e);}});
                 }catch(Exception e){showError(e);}
             });
-            button("Resend code","account-resend",()->{if(System.currentTimeMillis()<resendAt){showError(new Exception("Please wait before requesting another code."));return;}sendCode();});
-            button("Change number","account-change-number",()->{challengeId="";render();});
+            button(t("Resend code"),"account-resend",()->{if(System.currentTimeMillis()<resendAt){showError(new Exception(t("Please wait before requesting another code.")));return;}sendCode();});
+            button(t("Change number"),"account-change-number",()->{challengeId="";render();});
         }
-        if(working)label("Connecting…",14);
+        if(working)label(t("Connecting…"),14);
     }
     void sendCode(){
         try {JSONObject input=new JSONObject().put("mobile",phone).put("role",selectedRole).put("language",selectedLanguage);
@@ -136,29 +141,30 @@ public class AccountActivity extends AppCompatActivity {
     }
     void applySession(JSONObject value)throws Exception {
         AccountStore.validId(value.getJSONObject("user").getString("id"));
-        vault.save(value);session=value;challengeId="";draft=null;screen="home";epoch++;render();
+        vault.save(value);session=value;challengeId="";draft=null;screen="home";epoch++;NotificationJob.schedule(this);render();
     }
     void home()throws Exception {
         JSONObject user=session.getJSONObject("user");boolean collector=user.getString("role").equals("collector");
-        label(collector?"Your lots":"Recycler account",23);
+        label(collector?t("Your lots"):t("Recycler account"),23);
         label(user.optString("displayName","").isEmpty()?user.getString("mobile"):user.getString("displayName"),16);
-        button("Profile","account-profile",()->{screen="profile";render();});
+        button(t("Profile"),"account-profile",()->{screen="profile";render();});
         market.pending();
-        button("Earnings & payments","account-earnings",()->market.load("earnings","/earnings"));
-        button("Notifications","account-inbox",()->market.load("inbox","/notifications"));
-        button("Orders","account-orders",()->market.load("orders","/orders"));
-        button(collector?"My requests":"Incoming requests","account-requests",()->market.load("requests","/requests"));
+        button(t("Earnings & payments"),"account-earnings",()->market.load("earnings","/earnings"));
+        button(t("Notifications"),"account-inbox",()->market.load("inbox","/notifications"));
+        button(t("Enable phone notifications"),"account-notifications-enable",()->{if(android.os.Build.VERSION.SDK_INT>=33)notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);else NotificationJob.schedule(this);});
+        button(t("Orders"),"account-orders",()->market.load("orders","/orders"));
+        button(collector?t("My requests"):t("Incoming requests"),"account-requests",()->market.load("requests","/requests"));
         if(collector){
-            button("＋ Create a lot","account-create",this::createDraft);
-            button("Sync saved drafts","account-sync",this::syncAll);
-            JSONArray lots=store.drafts(account());if(lots.length()==0)label("Take a photo or upload one to save your first lot.",16);
+            button(t("＋ Create a lot"),"account-create",this::createDraft);
+            button(t("Sync saved drafts"),"account-sync",this::syncAll);
+            JSONArray lots=store.drafts(account());if(lots.length()==0)label(t("Take a photo or upload one to save your first lot."),16);
             for(int i=0;i<lots.length();i++){
                 JSONObject lot=lots.getJSONObject(i);String id=lot.getString("id"),title=lot.optString("title");
-                String state=lot.optString("syncState");label((title.isEmpty()?"Untitled lot":title)+" · "+(state.equals("synced")?"Saved online":state.equals("conflict")?"Review needed":"Saved on this phone"),17);
-                button("Open lot","account-open-"+id,()->{try{draft=store.draft(account(),id);screen="edit";render();}catch(Exception e){showError(e);}});
+                String state=lot.optString("syncState");label((title.isEmpty()?t("Untitled lot"):title)+" · "+(state.equals("synced")?t("Saved online"):state.equals("conflict")?t("Review needed"):t("Saved on this phone")),17);
+                button(t("Open lot"),"account-open-"+id,()->{try{draft=store.draft(account(),id);screen="edit";render();}catch(Exception e){showError(e);}});
             }
-        }else button("Buying portfolio","account-portfolio",()->market.load("portfolio","/requirements"));
-        button("Sign out","account-logout",this::logout);
+        }else button(t("Buying portfolio"),"account-portfolio",()->market.load("portfolio","/requirements"));
+        button(t("Sign out"),"account-logout",this::logout);
     }
     void createDraft(){try{
         JSONObject item=new JSONObject().put("id",UUID.randomUUID().toString()).put("broadCode",JSONObject.NULL).put("detailedCode",JSONObject.NULL)
@@ -169,43 +175,43 @@ public class AccountActivity extends AppCompatActivity {
     }catch(Exception e){showError(e);}}
     void saveField(JSONObject target,String key,Object value){try{if(!Objects.equals(target.opt(key),value)){target.put(key,value);store.save(account(),draft);}}catch(Exception e){showError(e);}}
     void editor()throws Exception {
-        label("Create a lot",23);label("Changes are saved on this phone as you type.",14);
-        field("Lot name",draft.optString("title"),"account-lot-title",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"title",v));
-        field("Collection area",draft.optString("locality"),"account-lot-area",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"locality",v));
+        label(t("Create a lot"),23);label(t("Changes are saved on this phone as you type."),14);
+        field(t("Lot name"),draft.optString("title"),"account-lot-title",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"title",v));
+        field(t("Collection area"),draft.optString("locality"),"account-lot-area",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"locality",v));
         JSONArray lines=draft.getJSONArray("items");itemIndex=Math.max(0,Math.min(itemIndex,lines.length()-1));
-        label("Material line "+(itemIndex+1)+" of "+lines.length(),18);
-        if(lines.length()>1)button("Next material line","account-next-line",()->{itemIndex=(itemIndex+1)%lines.length();render();});
-        if(lines.length()<20)button("Add another material","account-add-line",()->{try{JSONObject next=new JSONObject().put("id",UUID.randomUUID().toString()).put("broadCode",JSONObject.NULL).put("detailedCode",JSONObject.NULL).put("description","").put("condition","unknown").put("unit","kg").put("quantity","").put("reviewState","needs_review");lines.put(next);store.save(account(),draft);itemIndex=lines.length()-1;render();}catch(Exception e){showError(e);}});
+        label(t("Material line ")+(itemIndex+1)+" of "+lines.length(),18);
+        if(lines.length()>1)button(t("Next material line"),"account-next-line",()->{itemIndex=(itemIndex+1)%lines.length();render();});
+        if(lines.length()<20)button(t("Add another material"),"account-add-line",()->{try{JSONObject next=new JSONObject().put("id",UUID.randomUUID().toString()).put("broadCode",JSONObject.NULL).put("detailedCode",JSONObject.NULL).put("description","").put("condition","unknown").put("unit","kg").put("quantity","").put("reviewState","needs_review");lines.put(next);store.save(account(),draft);itemIndex=lines.length()-1;render();}catch(Exception e){showError(e);}});
         JSONObject item=lines.getJSONObject(itemIndex);
-        String[] categories=new String[Catalog.NAMES.length+1];categories[0]="Choose a category";System.arraycopy(Catalog.NAMES,0,categories,1,Catalog.NAMES.length);
+        String[] categories=new String[Catalog.NAMES.length+1];categories[0]=t("Choose a category");System.arraycopy(Catalog.NAMES,0,categories,1,Catalog.NAMES.length);
         int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(item.optString("broadCode")))selected=i+1;
-        choices("Waste category",categories,selected,pos->{Object code=pos==0?JSONObject.NULL:Catalog.code(pos-1);if(!Objects.equals(item.opt("broadCode"),code))saveField(item,"detailedCode",JSONObject.NULL);saveField(item,"broadCode",code);saveField(item,"reviewState",pos==0?"needs_review":"confirmed");});
-        choices("Unit",new String[]{"kg","piece"},item.optString("unit").equals("piece")?1:0,pos->saveField(item,"unit",pos==0?"kg":"piece"));
-        field("Quantity",item.isNull("quantity")?"":item.optString("quantity"),"account-lot-quantity",InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12,v->saveField(item,"quantity",v));
-        field("Description",item.optString("description"),"account-lot-description",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,1000,v->saveField(item,"description",v));
-        String[] conditions={"unknown","unsorted","sorted","damaged"};choices("Condition",conditions,Math.max(0,Arrays.asList(conditions).indexOf(item.optString("condition"))),pos->saveField(item,"condition",conditions[pos]));
-        field("Notes",draft.optString("notes"),"account-lot-notes",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,3000,v->saveField(draft,"notes",v));
-        button("Take photo","account-take-photo",()->{
+        choices(t("Waste category"),categories,selected,pos->{Object code=pos==0?JSONObject.NULL:Catalog.code(pos-1);if(!Objects.equals(item.opt("broadCode"),code))saveField(item,"detailedCode",JSONObject.NULL);saveField(item,"broadCode",code);saveField(item,"reviewState",pos==0?"needs_review":"confirmed");});
+        choices(t("Unit"),new String[]{"kg","piece"},item.optString("unit").equals("piece")?1:0,pos->saveField(item,"unit",pos==0?"kg":"piece"));
+        field(t("Quantity"),item.isNull("quantity")?"":item.optString("quantity"),"account-lot-quantity",InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12,v->saveField(item,"quantity",v));
+        field(t("Description"),item.optString("description"),"account-lot-description",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,1000,v->saveField(item,"description",v));
+        String[] conditions={"unknown","unsorted","sorted","damaged"};choices(t("Condition"),conditions,Math.max(0,Arrays.asList(conditions).indexOf(item.optString("condition"))),pos->saveField(item,"condition",conditions[pos]));
+        field(t("Notes"),draft.optString("notes"),"account-lot-notes",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,3000,v->saveField(draft,"notes",v));
+        button(t("Take photo"),"account-take-photo",()->{
             try {cameraId=UUID.randomUUID().toString();cameraAccount=account();cameraDraft=draft.getString("id");
                 camera.launch(FileProvider.getUriForFile(this,getPackageName()+".files",store.photo(cameraAccount,cameraId)));
             }catch(Exception e){showError(e);}
         });
-        button("Upload photo","account-choose-photo",()->gallery.launch(new String[]{"image/*"}));
+        button(t("Upload photo"),"account-choose-photo",()->gallery.launch(new String[]{"image/*"}));
         JSONArray photos=draft.getJSONArray("fileIds");label(photos.length()+" photo(s)",14);
-        if(photos.length()>0)button("Identify a photo with Gemini","account-identify",()->market.identify(draft,null));
+        if(photos.length()>0)button(t("Identify a photo with Gemini"),"account-identify",()->market.identify(draft,null));
         for(int i=0;i<photos.length();i++){
             String photo=photos.getString(i);File file=store.photo(account(),photo);
             if(file.exists()){
                 BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=4;Bitmap bitmap=BitmapFactory.decodeFile(file.getPath(),options);
-                if(bitmap!=null){ImageView preview=new ImageView(this);preview.setImageBitmap(bitmap);preview.setContentDescription("Lot photo");preview.setScaleType(ImageView.ScaleType.CENTER_INSIDE);page.addView(preview,new LinearLayout.LayoutParams(-1,dp(150)));}
-            }else label("Photo saved online",14);
-            button("Remove this photo from lot","account-remove-photo-"+i,()->{try{JSONArray keep=new JSONArray();for(int j=0;j<photos.length();j++)if(!photos.optString(j).equals(photo))keep.put(photos.optString(j));draft.put("fileIds",keep);store.save(account(),draft);render();}catch(Exception e){showError(e);}});
+                if(bitmap!=null){ImageView preview=new ImageView(this);preview.setImageBitmap(bitmap);preview.setContentDescription(t("Lot photo"));preview.setScaleType(ImageView.ScaleType.CENTER_INSIDE);page.addView(preview,new LinearLayout.LayoutParams(-1,dp(150)));}
+            }else label(t("Photo saved online"),14);
+            button(t("Remove this photo from lot"),"account-remove-photo-"+i,()->{try{JSONArray keep=new JSONArray();for(int j=0;j<photos.length();j++)if(!photos.optString(j).equals(photo))keep.put(photos.optString(j));draft.put("fileIds",keep);store.save(account(),draft);render();}catch(Exception e){showError(e);}});
         }
         JSONObject saved=store.draft(account(),draft.getString("id"));
-        if(saved.optString("syncState").equals("conflict"))button("Review server changes","account-review-conflict",this::reviewConflict);
-        else button("Save online","account-save-online",this::syncAll);
-        button("Find recycler requirements for this line","account-find-matches",market::findMatches);
-        button("Back to my lots","account-back",()->{draft=null;screen="home";render();});
+        if(saved.optString("syncState").equals("conflict"))button(t("Review server changes"),"account-review-conflict",this::reviewConflict);
+        else button(t("Save online"),"account-save-online",this::syncAll);
+        button(t("Find recycler requirements for this line"),"account-find-matches",market::findMatches);
+        button(t("Back to my lots"),"account-back",()->{draft=null;screen="home";render();});
     }
     void takeEvidencePhoto(String context){
         try{cameraId=UUID.randomUUID().toString();cameraAccount=account();cameraDraft=context;camera.launch(FileProvider.getUriForFile(this,getPackageName()+".files",store.photo(cameraAccount,cameraId)));}catch(Exception e){showError(e);}
@@ -215,11 +221,11 @@ public class AccountActivity extends AppCompatActivity {
         task(()->{
             BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;
             try(InputStream in=getContentResolver().openInputStream(uri)){BitmapFactory.decodeStream(in,null,bounds);}
-            if(bounds.outWidth<=0||bounds.outHeight<=0)throw new IOException("Choose a readable photo.");
+            if(bounds.outWidth<=0||bounds.outHeight<=0)throw new IOException(t("Choose a readable photo."));
             BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=1;
             while(Math.max(bounds.outWidth,bounds.outHeight)/options.inSampleSize>1600)options.inSampleSize*=2;
             Bitmap bitmap;try(InputStream in=getContentResolver().openInputStream(uri)){bitmap=BitmapFactory.decodeStream(in,null,options);}
-            if(bitmap==null)throw new IOException("Could not read this photo.");
+            if(bitmap==null)throw new IOException(t("Could not read this photo."));
             int orientation=ExifInterface.ORIENTATION_NORMAL;
             try(InputStream in=getContentResolver().openInputStream(uri)){orientation=new ExifInterface(in).getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);}catch(IOException ignored){}
             Matrix matrix=new Matrix();
@@ -234,24 +240,24 @@ public class AccountActivity extends AppCompatActivity {
             }
             if(!matrix.isIdentity()){Bitmap rotated=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);if(rotated!=bitmap){bitmap.recycle();bitmap=rotated;}}
             String fileId=UUID.randomUUID().toString();File output=store.photo(accountId,fileId);
-            try(FileOutputStream out=new FileOutputStream(output)){if(!bitmap.compress(Bitmap.CompressFormat.JPEG,85,out))throw new IOException("Could not save photo.");}finally{bitmap.recycle();}
-            if(output.length()>2*1024*1024)throw new IOException("Choose a smaller photo.");
+            try(FileOutputStream out=new FileOutputStream(output)){if(!bitmap.compress(Bitmap.CompressFormat.JPEG,85,out))throw new IOException(t("Could not save photo."));}finally{bitmap.recycle();}
+            if(output.length()>2*1024*1024)throw new IOException(t("Choose a smaller photo."));
             if(draftId.startsWith("evidence:")){
-                JSONObject evidence=store.cached(accountId,draftId);if(evidence==null)throw new IOException("Evidence draft was not found.");JSONArray photos=evidence.getJSONArray("fileIds");if(photos.length()>=5)throw new IOException("Use at most five evidence photos.");photos.put(fileId);store.cache(accountId,draftId,evidence);
+                JSONObject evidence=store.cached(accountId,draftId);if(evidence==null)throw new IOException(t("Evidence draft was not found."));JSONArray photos=evidence.getJSONArray("fileIds");if(photos.length()>=5)throw new IOException(t("Use at most five evidence photos."));photos.put(fileId);store.cache(accountId,draftId,evidence);
             }else store.attachPhoto(accountId,draftId,fileId);return draftId;
         },savedId->{try{if(savedId.startsWith("evidence:")){market.show("evidence",store.cached(accountId,savedId));}else{draft=store.draft(accountId,savedId);screen="edit";render();}}catch(Exception e){showError(e);}});
     }
     void profile()throws Exception {
-        JSONObject user=session.getJSONObject("user");label("Profile",23);label(user.getString("mobile")+" · "+user.getString("role"),15);
-        EditText name=field("Name",user.optString("displayName"),"account-profile-name",InputType.TYPE_CLASS_TEXT,100,null);
-        EditText area=field("Area",user.optString("locality"),"account-profile-area",InputType.TYPE_CLASS_TEXT,120,null);
+        JSONObject user=session.getJSONObject("user");label(t("Profile"),23);label(user.getString("mobile")+" · "+user.getString("role"),15);
+        EditText name=field(t("Name"),user.optString("displayName"),"account-profile-name",InputType.TYPE_CLASS_TEXT,100,null);
+        EditText area=field(t("Area"),user.optString("locality"),"account-profile-area",InputType.TYPE_CLASS_TEXT,120,null);
         final String[] language={user.optString("language","en")};
-        choices("Preferred language",new String[]{"English","हिन्दी","मराठी"},Arrays.asList("en","hi","mr").indexOf(language[0]),p->language[0]=new String[]{"en","hi","mr"}[p]);
-        button("Save profile","account-save-profile",()->{
+        choices(t("Preferred language"),new String[]{"English","हिन्दी","मराठी"},Arrays.asList("en","hi","mr").indexOf(language[0]),p->language[0]=new String[]{"en","hi","mr"}[p]);
+        button(t("Save profile"),"account-save-profile",()->{
             try {JSONObject input=new JSONObject().put("displayName",name.getText().toString()).put("locality",area.getText().toString()).put("language",language[0]).put("expectedVersion",user.getInt("version"));String auth=token();
                 task(()->api.request("PUT","/me",auth,input),result->{try{session.put("user",result.getJSONObject("user"));vault.save(session);screen="home";render();}catch(Exception e){showError(e);}});
             }catch(Exception e){showError(e);}
-        });button("Back","account-profile-back",()->{screen="home";render();});
+        });button(t("Back"),"account-profile-back",()->{screen="home";render();});
     }
     void refresh(){
         String owner=account(),auth=token();boolean collector=session.optJSONObject("user").optString("role").equals("collector");
@@ -265,19 +271,19 @@ public class AccountActivity extends AppCompatActivity {
             AccountSync sync=new AccountSync(store,api);JSONArray lots=store.drafts(owner);int count=0;
             for(int i=0;i<lots.length();i++){JSONObject lot=lots.getJSONObject(i);if(!lot.optString("syncState").equals("synced")&&!lot.optString("syncState").equals("conflict")){sync.save(owner,auth,lot.getString("id"));count++;}}
             sync.refresh(owner,auth);return count;
-        },count->{try{if(draft!=null)draft=store.draft(owner,draft.getString("id"));render();Toast.makeText(this,"Drafts synced",Toast.LENGTH_SHORT).show();}catch(Exception e){showError(e);}});
+        },count->{try{if(draft!=null)draft=store.draft(owner,draft.getString("id"));render();Toast.makeText(this,t("Drafts synced"),Toast.LENGTH_SHORT).show();}catch(Exception e){showError(e);}});
     }
     void reviewConflict(){
         String owner=account(),auth=token(),lotId=draft.optString("id");
         task(()->api.request("GET","/lots/"+lotId,auth,null),result->{
             JSONObject remote=result.optJSONObject("lot");
-            new AlertDialog.Builder(this).setTitle("Draft changed on another device").setMessage("Online: "+remote.optString("title")+"\n"+remote.optString("locality")+"\n"+remote.optString("notes")+"\n\nKeep your local changes as a separate draft and restore the updated online copy alongside it.")
-                .setPositiveButton("Keep a separate copy",(d,w)->{try{JSONObject copy=new JSONObject(draft.toString());copy.put("id",UUID.randomUUID().toString());copy.remove("serverVersion");copy.remove("localRevision");copy.remove("syncState");store.save(owner,copy);store.replaceFromServer(owner,remote);draft=copy;render();}catch(Exception e){showError(e);}})
-                .setNeutralButton("Keep reviewing",null).show();
+            new AlertDialog.Builder(this).setTitle(t("Draft changed on another device")).setMessage(t("Online: ")+remote.optString("title")+"\n"+remote.optString("locality")+"\n"+remote.optString("notes")+"\n\nKeep your local changes as a separate draft and restore the updated online copy alongside it.")
+                .setPositiveButton(t("Keep a separate copy"),(d,w)->{try{JSONObject copy=new JSONObject(draft.toString());copy.put("id",UUID.randomUUID().toString());copy.remove("serverVersion");copy.remove("localRevision");copy.remove("syncState");store.save(owner,copy);store.replaceFromServer(owner,remote);draft=copy;render();}catch(Exception e){showError(e);}})
+                .setNeutralButton(t("Keep reviewing"),null).show();
         });
     }
     void logout(){
-        try{vault.queueRevocation(token());vault.clear();session=null;draft=null;screen="home";epoch++;render();drainRevocations();}catch(Exception e){showError(e);}
+        try{vault.queueRevocation(token());vault.clear();NotificationJob.cancel(this);session=null;draft=null;screen="home";epoch++;render();drainRevocations();}catch(Exception e){showError(e);}
     }
     void drainRevocations(){
         tasks.submit(()->{try{JSONArray tokens=vault.pendingRevocations();for(int i=0;i<tokens.length();i++){
@@ -293,6 +299,6 @@ public class AccountActivity extends AppCompatActivity {
                 if(error instanceof AccountApi.Failure&&((AccountApi.Failure)error).status==401&&session!=null){try{vault.clear();}catch(Exception ignored){}session=null;draft=null;epoch++;}
                 render();showError(error);});}});
     }
-    String message(Throwable error){return error.getMessage()==null?"Please try again.":error.getMessage();}
-    void showError(Throwable error){if(!isFinishing())new AlertDialog.Builder(this).setTitle("Could not complete this action").setMessage(message(error)).setPositiveButton("OK",null).show();}
+    String message(Throwable error){return error.getMessage()==null?t("Please try again."):error.getMessage();}
+    void showError(Throwable error){if(!isFinishing())new AlertDialog.Builder(this).setTitle(t("Could not complete this action")).setMessage(message(error)).setPositiveButton("OK",null).show();}
 }
