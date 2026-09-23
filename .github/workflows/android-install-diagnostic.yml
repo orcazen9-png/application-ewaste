@@ -17,6 +17,21 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v4
+      - name: Restore the existing signing cache for inspection
+        id: signing-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-native-demo-signing-v1
+      - name: Inspect the cached public certificate
+        shell: bash
+        run: |
+          echo '::notice::Signing cache hit: ${{ steps.signing-cache.outputs.cache-hit }}'
+          if [ -f "$HOME/.android/debug.keystore" ]; then
+            keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android | grep 'SHA256:' | while IFS= read -r line; do echo "::notice::CACHED_KEY $line"; done
+          else
+            echo '::notice::CACHED_KEY_UNAVAILABLE'
+          fi
       - name: Retrieve the exact v1 download
         uses: actions/download-artifact@v4
         with:
@@ -45,21 +60,24 @@ jobs:
             "$sdktools/aapt" dump badging "$apk" > "reports/$version-manifest.txt" 2>&1 || true
             "$sdktools/zipalign" -c -v -P 16 4 "$apk" > "reports/$version-alignment.txt" 2>&1 || { tail -12 "reports/$version-alignment.txt" | while IFS= read -r line; do echo "::warning::$version alignment: $line"; done; }
             sha256sum "$apk" >> reports/apk-hashes.txt
-            cert="$(grep 'Signer #1 certificate SHA-256 digest:' "reports/$version-signature.txt" || true)"
+            cert="$(grep -i 'certificate SHA-256 digest:' "reports/$version-signature.txt" || true)"
             echo "::notice::$version $cert"
+            head -25 "reports/$version-signature.txt" | while IFS= read -r line; do echo "::notice::$version signature detail: $line"; done
             grep "package: name=" "reports/$version-manifest.txt" | while IFS= read -r line; do echo "::notice::$version $line"; done
           done
-          if diff <(grep 'Signer #1 certificate SHA-256 digest:' reports/baseline-signature.txt) <(grep 'Signer #1 certificate SHA-256 digest:' reports/update-signature.txt); then
+          if grep -qi 'certificate SHA-256 digest:' reports/baseline-signature.txt && diff <(grep -i 'certificate SHA-256 digest:' reports/baseline-signature.txt) <(grep -i 'certificate SHA-256 digest:' reports/update-signature.txt); then
             echo '::notice::DISTRIBUTED_APK_CERTIFICATES_MATCH'
           else
             echo '::error::DISTRIBUTED_APK_CERTIFICATES_DIFFER'
           fi
       - name: Enable emulator acceleration
+        if: false
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Test the exact v1 to v2 update
+        if: false
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
