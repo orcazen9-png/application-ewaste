@@ -1,6 +1,6 @@
 {
-  "appId": "com.ewaste.marketplace",
-  "appName": "E-Waste Marketplace",
+  "appId": "com.ewaste.marketplace.demo",
+  "appName": "E-Waste Demo",
   "webDir": "dist/client",
   "server": {
     "androidScheme": "https"
