@@ -45,6 +45,7 @@ public final class MainActivity extends AppCompatActivity {
 
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);
+        if(BuildConfig.ACCOUNT_FOUNDATION){startActivity(new Intent(this,AccountActivity.class));finish();return;}
         try{
             store=new LocalStore(this);workspaceCode=store.code();shared=store.shared();
             if(saved!=null){screen=saved.getString("screen","home");detailId=saved.getString("detail","");pendingCameraId=saved.getString("camera","");String raw=saved.getString("draft");if(raw!=null){draft=new JSONObject(raw);dirty=saved.getBoolean("dirty");JSONArray picked=new JSONArray(saved.getString("selected","[]"));selectedCodes=Catalog.codes(picked);}}

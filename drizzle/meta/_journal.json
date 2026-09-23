@@ -15,6 +15,13 @@
       "when": 1790174179065,
       "tag": "0001_d1_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790208000000,
+      "tag": "0002_account_foundation",
+      "breakpoints": true
     }
   ]
 }

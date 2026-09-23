@@ -4,6 +4,7 @@ import {identification} from './identification.js';
 import {d1Bucket} from './d1-photos.js';
 import {lotAssessment} from './lot-assessments.js';
 import {collectorProjection,marketCommand} from './collector-market.js';
+import {accountApi} from './accounts/api.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -12,6 +13,7 @@ const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status
 async function body(request){const raw=await request.text();if(raw.length>50000)fail('Request is too large.',413);try{return JSON.parse(raw);}catch{fail('Invalid request.');}}
 export async function api(request,env){
   const url=new URL(request.url),path=url.pathname;
+  if(path.startsWith('/api/v1/'))return accountApi(request,env);
   if(path==='/api/health')return json({ok:true});
   if(path==='/api/spaces'&&request.method==='POST'){
     // Public hosts (no Sites sign-in in front) share one pre-created workspace through its join link instead.

@@ -11,6 +11,14 @@ android {
         versionName = project.findProperty('appVersionName') ?: '2.1-native'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
+    buildFeatures { buildConfig true }
+    defaultConfig {
+        // Enabled only for the account-foundation build until its backend is configured.
+        buildConfigField 'boolean', 'ACCOUNT_FOUNDATION', (project.findProperty('accountFoundation') ?: 'false').toString()
+        def accountOrigin = (project.findProperty('accountApiOrigin') ?: 'https://ewaste-demo.ewaste-marketplace.workers.dev').toString()
+        if (!(accountOrigin ==~ /https:\/\/[A-Za-z0-9.-]+(:[0-9]+)?/)) throw new GradleException('accountApiOrigin must be an HTTPS origin')
+        buildConfigField 'String', 'ACCOUNT_API_ORIGIN', '"' + accountOrigin + '"'
+    }
     signingConfigs {
         collector {
             if (System.getenv('EWASTE_SIGNING_STORE')) {

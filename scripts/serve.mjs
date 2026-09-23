@@ -9,6 +9,7 @@ const bindings=await localBindings('work/data');
 try{process.loadEnvFile('.env');}catch(error){if(error.code!=='ENOENT')throw error;}
 bindings.GEMINI_API_KEY=process.env.GEMINI_API_KEY;
 bindings.GEMINI_MODEL=process.env.GEMINI_MODEL;
+for(const key of ['ACCOUNTS_ENABLED','AUTH_RATE_SECRET','TWILIO_ACCOUNT_SID','TWILIO_VERIFY_SERVICE_SID','TWILIO_AUTH_TOKEN'])if(process.env[key])bindings[key]=process.env[key];
 for(const key of ['GEMINI_THINKING_BUDGET','GEMINI_HEDGE_MS','GEMINI_MEDIA_RESOLUTION'])if(process.env[key])bindings[key]=process.env[key];
 const mime = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.json':'application/json','.webmanifest':'application/manifest+json'};
 // Experimental ITEW suggestions come from the loopback Python service (python -m uvicorn ml.api:app --port 8766).
