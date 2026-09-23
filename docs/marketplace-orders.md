@@ -54,7 +54,13 @@ Commercial writes carry a persistent command ID and expected version where appli
 
 Backend integration tests exercise real local SQLite migrations/triggers through the Worker routes, including competing supply/demand acceptance, retry replay, owner isolation, shared photo permissions, stale quotes/drafts, detailed-category review, cancellation release and acknowledged price revisions. Gemini transport is replaced only inside tests. The Android test suite exercises actual native screens against a controlled in-process API, including collector comparison/submission, recycler portfolio editing/acceptance and persistent pending commands; deployed phone-to-Cloudflare testing is still required.
 
-Verification results and screenshot links will be recorded after the final CI run.
+Verified on 24 September 2026 at code commit `e9beec5ec16f957c58857613737c6d5bd2dfa899`:
+
+- [GitHub Actions run 35927433355](https://github.com/orcazen9-png/application-ewaste/actions/runs/35927433355) passed both jobs: 64 backend tests, type checking and production build, plus native compilation and all 7 Android 16 instrumentation tests with no failures or skips.
+- Wrangler 4.137.0 applied migrations `0000` through `0003`, including the reservation triggers, successfully against a fresh local D1 database. The live database was not accessed or migrated.
+- The native shared-order and account-draft screenshots were downloaded and visually checked. Local copies: [shared order](../work/marketplace-verified/results/native-market-order.png) and [account draft](../work/marketplace-verified/results/native-account-draft.png). These ignored local files are not committed; the CI run's `account-foundation-test-results` artifact contains the screenshots and reports and expires on 30 September 2026.
+
+These checks verify native flows and backend integrity independently. They do not replace staging tests with a real SMS provider, live Gemini responses, private cloud storage or a physical phone.
 
 Before staging activation: finish M2's configured OTP, separate D1/private R2 resources and staff verification process; apply all additive migrations; configure the existing server-only Gemini model/key; use real authorized facility verification records. Before production: complete retention/deletion, translated/accessibility checks, operational limits, physical-device testing, backup/migration rehearsal and the remaining product workflows. This commit does not send SMS, buy services, create cloud resources, or distribute an installable replacement APK.
 
