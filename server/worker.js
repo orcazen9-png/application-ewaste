@@ -1,5 +1,6 @@
 import {createState,evolvePrices} from '../dist/domain.js';
 import {transact} from '../dist/transactions.js';
+import {identification} from './identification.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -21,6 +22,7 @@ export async function api(request,env){
   if(!keyPattern.test(code))fail('Enter a valid workspace pairing code.',401);
   const space=await env.DB.prepare('SELECT * FROM spaces WHERE access_hash=?').bind(await digest(code)).first();
   if(!space)fail('Workspace code was not recognized.',401);
+  if(path.startsWith('/api/identification'))return json(await identification(request,env,space));
   if(path==='/api/state'&&request.method==='GET')return json({state:JSON.parse(space.state_json),version:space.version});
   const photoMatch=path.match(/^\/api\/photos\/([^/]+)$/);
   if(photoMatch){

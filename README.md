@@ -12,6 +12,10 @@ Web and Android transaction prototype. Prices, buyers, pickup progress, and paym
 - Labelled sample sales and sample-only reset that preserves user lots.
 - Shared workspaces with durable D1 records and R2 photos, offline publication queues, atomic version checks, and idempotent transaction retries.
 
+## Photo identification demo (Gemini)
+
+`/identify.html` shows three connected views of one uploaded photo: an aggregator view with 20 broad categories, a recycler view with 106 detailed equipment codes, and an ERP overview of assessments, human confirmations, asking prices and offers. Google Gemini suggests categories from the photo; a person confirms, corrects, marks it not e-waste or asks for a better photo. Gemini never sets prices. The API key lives only in the server's `.env`. See [docs/gemini-demo.md](docs/gemini-demo.md).
+
 ## Run and verify
 
 Requires Node.js 22.13+ (24 recommended).
