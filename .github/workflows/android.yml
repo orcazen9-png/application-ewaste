@@ -21,11 +21,20 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v4
-      - uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: android-native-demo-signing-v1
+      - name: Load and verify the permanent signing key
+        env:
+          ANDROID_SIGNING_JSON: ${{ secrets.ANDROID_SIGNING_JSON }}
+        run: python3 scripts/prepare-android-signing.py
       - run: npm ci && npm test
+      - name: Build a previous version for the upgrade test
+        working-directory: native-android
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ./gradlew assembleDebug assembleDebugAndroidTest -PappVersionCode=2 -PappVersionName=upgrade-test-baseline --no-daemon
+          mkdir -p ../upgrade-baseline
+          cp app/build/outputs/apk/debug/app-debug.apk ../upgrade-baseline/app.apk
+          cp app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk ../upgrade-baseline/tests.apk
       - name: Compile native application and device tests
         working-directory: native-android
         shell: bash
@@ -46,17 +55,24 @@ jobs:
           mkdir -p apk-download
           "$sdktools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
           "$sdktools/aapt" dump badging "$apk" >> apk-download/verification.txt
-          grep "package: name='com.ewaste.marketplace.nativeapp' versionCode='2' versionName='2.0-native'" apk-download/verification.txt
+          grep "package: name='com.ewaste.marketplace.collector' versionCode='3' versionName='2.1-native'" apk-download/verification.txt
+          python3 - <<'PY'
+          import pathlib, re
+          report = pathlib.Path('apk-download/verification.txt').read_text()
+          expected = pathlib.Path('native-android/signing-certificate.sha256').read_text().strip().lower()
+          fingerprints = re.findall(r'certificate SHA-256 digest:\s*([a-f0-9]{64})', report, re.I)
+          assert fingerprints and all(value.lower() == expected for value in fingerprints), 'APK signing certificate changed'
+          PY
           if grep -E 'application-testOnly|application-debuggable' apk-download/verification.txt; then exit 1; fi
           if grep -R -E 'import android.webkit|com.getcapacitor' native-android/app/src/main; then exit 1; fi
-          cp "$apk" apk-download/E-Waste-Marketplace-native-v2.apk
+          cp "$apk" apk-download/E-Waste-Marketplace-native-v3.apk
           sha256sum apk-download/*.apk >> apk-download/verification.txt
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Android 16 installation and native photo flow
+      - name: Android 16 update persistence and native photo flow
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -69,9 +85,10 @@ jobs:
             adb shell wm dismiss-keyguard
             adb shell settings put system screen_off_timeout 1800000
             adb shell svc power stayon true
-            adb install native-android/app/build/outputs/apk/release/app-release.apk
-            adb shell am start -W -n com.ewaste.marketplace.nativeapp/com.ewaste.nativeapp.MainActivity
-            adb shell pidof com.ewaste.marketplace.nativeapp
+            bash scripts/test-android-upgrade.sh
+            adb shell am start -W -n com.ewaste.marketplace.collector/com.ewaste.nativeapp.MainActivity
+            adb shell pidof com.ewaste.marketplace.collector
+            adb shell uiautomator dump /sdcard/native-home.xml
             adb exec-out screencap -p > apk-download/native-home.png
             cd native-android && bash ./gradlew connectedDebugAndroidTest --no-daemon
       - name: Report device test failures
@@ -91,7 +108,7 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: E-Waste-Marketplace-native-v2
+          name: E-Waste-Marketplace-native-v3
           path: apk-download/
           retention-days: 14
           if-no-files-found: error
@@ -103,3 +120,8 @@ jobs:
             native-android/build.log
             native-android/app/build/reports/androidTests/
             native-android/app/build/outputs/androidTest-results/
+            upgrade-baseline/*.txt
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/ewaste-collector-release.p12"

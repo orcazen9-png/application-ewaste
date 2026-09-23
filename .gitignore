@@ -11,6 +11,7 @@ __pycache__/
 docs/PRD.md
 *.jks
 *.keystore
+*.p12
 android/.gradle/
 android/local.properties
 android/**/build/

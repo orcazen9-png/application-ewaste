@@ -3,22 +3,39 @@ android {
     namespace 'com.ewaste.nativeapp'
     compileSdk 36
     defaultConfig {
-        applicationId 'com.ewaste.marketplace.nativeapp'
+        // New identity preserves old installs whose signing keys were lost in CI.
+        applicationId 'com.ewaste.marketplace.collector'
         minSdk 26
         targetSdk 36
-        versionCode 2
-        versionName '2.0-native'
+        versionCode (project.findProperty('appVersionCode') ?: '3').toInteger()
+        versionName project.findProperty('appVersionName') ?: '2.1-native'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    signingConfigs {
+        collector {
+            if (System.getenv('EWASTE_SIGNING_STORE')) {
+                storeFile file(System.getenv('EWASTE_SIGNING_STORE'))
+                storeType 'PKCS12'
+                storePassword System.getenv('EWASTE_SIGNING_PASSWORD')
+                keyAlias System.getenv('EWASTE_SIGNING_ALIAS')
+                keyPassword System.getenv('EWASTE_SIGNING_PASSWORD')
+            }
+        }
     }
     buildTypes {
         release {
-            // Demo signing only. No production key or Gemini credential is embedded.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.collector
             debuggable false
             minifyEnabled false
         }
     }
+    buildTypes.debug { if (System.getenv('EWASTE_SIGNING_STORE')) signingConfig signingConfigs.collector }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.name.contains('Release') } && !System.getenv('EWASTE_SIGNING_STORE')) {
+        throw new GradleException('Release signing key is required. Refusing to generate an incompatible replacement key.')
+    }
 }
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
