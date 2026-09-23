@@ -2,13 +2,14 @@
 // context). getRandomValues is still available, so build the same random v4 ID from it.
 if(!crypto.randomUUID)crypto.randomUUID=()=>'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
 import {readState,compressPhoto} from './store.js';
-import {connectWorkspace} from './sync.js';
+import {connectWorkspace,HOSTED_ENDPOINT} from './sync.js';
 import {choices} from './waste-catalog.js';
 let config,items=[],role='aggregator',busy=false,urls=[];
 const content=document.querySelector('#content'),message=document.querySelector('#message');
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=p=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(p/100);
 const label=(scope,code)=>choices(scope).find(c=>c.code===code)?.name||'Awaiting confirmation';
+const demoEndpoint=()=>['localhost','127.0.0.1'].includes(location.hostname)&&location.protocol==='http:'?location.origin:HOSTED_ENDPOINT;
 async function api(path,body,method='POST'){
   if(!config?.code)throw new Error('Connect the demo workspace first.');
   const response=await fetch(config.endpoint+'/api/identification'+path,{method,headers:{Authorization:`Bearer ${config.code}`,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(90000)});
@@ -63,9 +64,9 @@ async function joinFromLink(){
  const code=new URLSearchParams(location.hash.slice(1)).get('join');if(!code)return;
  history.replaceState(null,'',location.pathname);
  if((await readState())?.sync?.code===code)return;
- message.textContent='Joining the demo workspace…';await connectWorkspace(location.origin,code);
+ message.textContent='Joining the demo workspace…';await connectWorkspace(demoEndpoint(),code);
 }
-document.querySelector('#connect').onclick=()=>run(async()=>{const s=await readState();if(!s?.sync?.code)await connectWorkspace(location.origin,'',true);});
+document.querySelector('#connect').onclick=()=>run(async()=>{const s=await readState();if(!s?.sync?.code){const code=document.querySelector('#workspace-code').value.trim();if(!code)throw new Error('Enter the demo workspace pairing code.');await connectWorkspace(demoEndpoint(),code);}});
 document.querySelector('#refresh').onclick=()=>run(async()=>{});
 document.querySelectorAll('[data-role]').forEach(button=>button.onclick=()=>{if(busy)return;role=button.dataset.role;render();refresh().catch(e=>{message.textContent=e.message;});});
 // Adding a category simply appends a ticked row; nothing is saved until the person confirms.

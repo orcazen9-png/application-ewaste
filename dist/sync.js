@@ -1,7 +1,7 @@
 import {readState,changeState,getPhoto} from './store.js';
 import {newId,createState} from './domain.js';
 import {transact} from './transactions.js';
-export const HOSTED_ENDPOINT='https://ewaste-collector-marketplace-9png.animesh0909.chatgpt.site';
+export const HOSTED_ENDPOINT='https://ewaste-demo.ewaste-marketplace.workers.dev';
 let active;
 async function request(config,path,options={}){
   const response=await fetch(config.endpoint+path,{...options,signal:AbortSignal.timeout(15000),headers:{Authorization:`Bearer ${config.code}`,...options.headers}});
