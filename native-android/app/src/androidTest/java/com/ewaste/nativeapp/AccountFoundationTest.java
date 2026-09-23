@@ -33,6 +33,12 @@ public class AccountFoundationTest {
     private void waitIdle(ActivityScenario<AccountActivity> scenario)throws Exception {
         AtomicBoolean idle=new AtomicBoolean(false);for(int i=0;i<150&&!idle.get();i++){Thread.sleep(100);scenario.onActivity(a->idle.set(!a.working));}assertTrue("Native operation completed",idle.get());
     }
+    private byte[] shellOutput(String command)throws Exception {
+        ParcelFileDescriptor descriptor=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+        try(InputStream input=new ParcelFileDescriptor.AutoCloseInputStream(descriptor);ByteArrayOutputStream output=new ByteArrayOutputStream()){
+            byte[] buffer=new byte[8192];int count;while((count=input.read(buffer))!=-1)output.write(buffer,0,count);return output.toByteArray();
+        }
+    }
 
     @Test public void draftsAndOutboxSurviveRestartWithoutCrossAccountAccess()throws Exception {
         String a=id(),b=id(),lot=id(),command;AccountStore first=new AccountStore(context);JSONObject original=draft(lot);
@@ -92,11 +98,10 @@ public class AccountFoundationTest {
             scenario.onActivity(a->{try{assertEquals("synced",a.store.draft(a.account(),a.draft.getString("id")).getString("syncState"));assertEquals(1,fake.uploads);nativeOnly(a.root);}catch(Exception e){throw new AssertionError(e);}});
             scenario.recreate();waitIdle(scenario);scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(fake.user.optString("id"),a.account());});
             // Keep the CI screenshot outside app storage, which test cleanup can remove.
-            ParcelFileDescriptor capture=InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .executeShellCommand("sh -c 'screencap -p /sdcard/account-draft.png && test -s /sdcard/account-draft.png && echo captured'");
-            try(BufferedReader reader=new BufferedReader(new InputStreamReader(new ParcelFileDescriptor.AutoCloseInputStream(capture)))){
-                String line;boolean captured=false;while((line=reader.readLine())!=null)captured|=line.equals("captured");
-                assertTrue("Native screen captured for CI review",captured);
+            // UiAutomation executes argv directly; shell quoting and compound commands do not apply.
+            shellOutput("screencap -p /sdcard/account-draft.png");
+            try(DataInputStream screenshot=new DataInputStream(new ByteArrayInputStream(shellOutput("cat /sdcard/account-draft.png")))){
+                assertEquals("Native screen captured as PNG for CI review",0x89504e470d0a1a0aL,screenshot.readLong());
             }
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
     }
