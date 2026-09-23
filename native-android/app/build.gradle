@@ -7,8 +7,8 @@ android {
         applicationId 'com.ewaste.marketplace.collector'
         minSdk 26
         targetSdk 36
-        versionCode (project.findProperty('appVersionCode') ?: '3').toInteger()
-        versionName project.findProperty('appVersionName') ?: '2.1-native'
+        versionCode = (project.findProperty('appVersionCode') ?: '3').toInteger()
+        versionName = project.findProperty('appVersionName') ?: '2.1-native'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     signingConfigs {
