@@ -37,15 +37,24 @@ function normalize(input) {
     notes: text(input.notes, 3000, 'notes'), items, fileIds, taxonomyVersion: CATALOG.version};
 }
 
-async function project(env, lot) {
-  const items = await rows(env.DB.prepare('SELECT * FROM lot_items WHERE lot_id=? ORDER BY id').bind(lot.id));
-  const files = await rows(env.DB.prepare('SELECT file_id FROM lot_files WHERE lot_id=? ORDER BY file_id').bind(lot.id));
+function project(lot, items, files) {
   return {id: lot.id, title: lot.title, locality: lot.locality, notes: lot.notes, status: lot.status, version: lot.version,
     taxonomyVersion: CATALOG.version, createdAt: lot.created_at, updatedAt: lot.updated_at, fileIds: files.map(f => f.file_id),
     items: items.map(i => ({id: i.id, broadCode: i.broad_code, detailedCode: i.detailed_code, description: i.description,
       condition: i.condition, unit: i.unit, quantity: i.quantity_base === null ? null : i.unit === 'kg'
         ? `${Math.floor(i.quantity_base/1000)}.${String(i.quantity_base%1000).padStart(3,'0')}` : String(i.quantity_base),
       reviewState: i.review_state}))};
+}
+
+async function projectPage(env, lots) {
+  if (!lots.length) return [];
+  const ids = lots.map(lot => lot.id), placeholders = ids.map(() => '?').join(',');
+  // Bounded bulk reads avoid exceeding D1's per-invocation query budget on a full page.
+  const [items, files] = await Promise.all([
+    rows(env.DB.prepare(`SELECT * FROM lot_items WHERE lot_id IN (${placeholders}) ORDER BY id`).bind(...ids)),
+    rows(env.DB.prepare(`SELECT lot_id,file_id FROM lot_files WHERE lot_id IN (${placeholders}) ORDER BY file_id`).bind(...ids)),
+  ]);
+  return lots.map(lot => project(lot, items.filter(item => item.lot_id === lot.id), files.filter(file => file.lot_id === lot.id)));
 }
 
 export async function lotRoute(request, env, user, lotId) {
@@ -55,14 +64,14 @@ export async function lotRoute(request, env, user, lotId) {
     if (cursor) requireId(cursor);
     const lots = await rows(env.DB.prepare('SELECT * FROM lots WHERE owner_user_id=? AND id>? ORDER BY id LIMIT 51').bind(user.id, cursor));
     const page = lots.slice(0,50);
-    return json({lots: await Promise.all(page.map(l => project(env, l))), nextCursor: lots.length > 50 ? page.at(-1).id : null});
+    return json({lots: await projectPage(env, page), nextCursor: lots.length > 50 ? page.at(-1).id : null});
   }
   requireId(lotId);
   const existing = await env.DB.prepare('SELECT * FROM lots WHERE id=?').bind(lotId).first();
   if (existing && existing.owner_user_id !== user.id) fail('Draft not found.', 404);
   if (request.method === 'GET') {
     if (!existing) fail('Draft not found.', 404);
-    return json({lot: await project(env, existing)});
+    return json({lot: (await projectPage(env, [existing]))[0]});
   }
   if (request.method !== 'PUT') fail('Method not supported.', 405);
   const input = await body(request), normalized = normalize(input);

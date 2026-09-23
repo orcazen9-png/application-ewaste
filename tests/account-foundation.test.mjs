@@ -176,3 +176,23 @@ test('draft quantities use exact base units and foreign-key catalogue values are
   assert.equal((await f.env.DB.prepare('SELECT quantity_base FROM lot_items WHERE lot_id=?').bind(lot).first()).quantity_base,1125);
   assert.equal((await(await f.call('/lots/'+lot,{token:a.token})).json()).lot.items[0].quantity,'1.125');
 });
+
+test('full draft pages stay within the Cloudflare query budget and paginate without leaking owners',async t=>{
+  const f=await fixture(t), a=await f.login(), b=await f.login('9000000002');
+  const writes=[];
+  for(let i=0;i<53;i++){
+    const lot=uuid(),owner=i===52?b.user.id:a.user.id;
+    writes.push(f.env.DB.prepare(`INSERT INTO lots (id,owner_user_id,title,locality,notes,version,last_command,created_at,updated_at)
+      VALUES (?,?,?,'Mumbai','',1,?,'2026-09-24','2026-09-24')`).bind(lot,owner,'Lot '+i,uuid()));
+    writes.push(f.env.DB.prepare(`INSERT INTO lot_items (lot_id,id,taxonomy_version,broad_code,description,condition,unit,quantity_base,review_state)
+      VALUES (?,?,?,'B01','Laptop','unknown','piece',1,'confirmed')`).bind(lot,uuid(),CATALOG.version));
+  }
+  await f.env.DB.batch(writes);
+  const prepare=f.env.DB.prepare;let queries=0;
+  f.env.DB.prepare=(...args)=>{if(++queries>50)throw new Error('Worker query budget exceeded');return prepare(...args);};
+  const response=await f.call('/lots',{token:a.token});assert.equal(response.status,200);
+  const first=await response.json();assert.equal(first.lots.length,50);assert.ok(first.lots.every(l=>l.items.length===1&&l.title!=='Lot 52'));
+  queries=0;const second=await(await f.call('/lots?after='+first.nextCursor,{token:a.token})).json();
+  assert.equal(second.lots.length,2);assert.equal(second.nextCursor,null);
+  assert.equal(new Set([...first.lots,...second.lots].map(l=>l.id)).size,52);
+});
