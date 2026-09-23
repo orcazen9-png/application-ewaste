@@ -63,8 +63,15 @@ New lots currently remain drafts. No route publishes demand, marks delivery comp
 
 ## Validation and release conditions
 
-Local backend tests cover account isolation, role retention, failed/expired/replayed codes, concurrent verification, revoked/expired/suspended accounts, photo ownership/immutability/limits, exact quantities, retry receipts, concurrent draft updates and separation from the old shared-workspace API. Validation results are recorded below after verification.
+Backend tests cover account isolation, role retention, failed/expired/replayed codes, concurrent verification, revoked/expired/suspended accounts, photo ownership/immutability/limits, exact quantities, retry receipts, concurrent draft updates, bounded list queries and separation from the old shared-workspace API.
 
-`Verify account foundation` runs native compilation and Android 16 instrumentation for the real native sign-in/draft/photo screens, account isolation, encrypted sessions, interrupted sync and process/activity recovery. CI uploads test reports, not an installable replacement APK. Native results must be checked before calling this milestone verified.
+Verified on 24 September 2026 at commit `9c3a593d10012e8e8a76985b04fff3d7ff3fc103`: [successful GitHub Actions run](https://github.com/orcazen9-png/application-ewaste/actions/runs/35923354923).
+
+- All 52 backend tests passed, along with the project checks and Worker build.
+- Android compilation passed; all four Android 16 instrumentation tests passed, with zero failures, errors or skipped tests. They exercise native sign-in/draft/photo screens, account isolation, encrypted sessions, interrupted sync and activity/store reopening.
+- The native Create a lot screenshot was retrieved and visually inspected. The saved title, collection area, category/unit controls and camera/gallery actions render correctly within the scrollable screen. This is functional foundation UI, not completed production design or localization.
+- Device tests use an injected API and generated sample photo; backend tests exercise the server independently. Real SMS, deployed staging integration, physical camera behavior and a signed phone upgrade remain release checks. Activity recreation/store reopening does not replace a full physical-device process-death test matrix.
+
+CI uploads test reports and the screenshot, not an installable replacement APK. The verification artifact expires after seven days; the retrieved local copy is under `work/account-foundation-verified/results/`. Earlier screenshot collection failures were corrected in the test harness and are superseded by the successful run above.
 
 Before any live release: configure/test real OTP and R2, complete staff authentication and intended user workflows, define retention/deletion and provider-data terms, rehearse ownership-aware migration, check physical devices, test backup restoration, and build with the existing permanent signing key. The current development work does not deploy or migrate the live Cloudflare environment.
