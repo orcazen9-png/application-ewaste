@@ -23,6 +23,8 @@ public final class LocalStore {
         data=file.getBaseFile().exists()?new JSONObject(new String(file.readFully(),StandardCharsets.UTF_8)):new JSONObject();
     }
     public synchronized JSONObject shared(){JSONObject value=data.optJSONObject("shared");return value==null?new JSONObject():Catalog.copy(value);}
+    public synchronized JSONObject pendingMarket(){JSONObject value=data.optJSONObject("pendingMarket");return value==null?null:Catalog.copy(value);}
+    public synchronized void setPendingMarket(JSONObject value)throws Exception{if(value==null)data.remove("pendingMarket");else Catalog.put(data,"pendingMarket",value);persist();}
     public synchronized JSONArray drafts(){JSONArray value=data.optJSONArray("drafts");try{return new JSONArray(value==null?"[]":value.toString());}catch(Exception e){throw new IllegalStateException(e);}}
     public synchronized void setShared(JSONObject shared)throws Exception{Catalog.put(data,"shared",shared);persist();}
     public synchronized void saveDraft(JSONObject lot)throws Exception{

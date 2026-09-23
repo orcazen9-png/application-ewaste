@@ -45,10 +45,10 @@ jobs:
           mkdir -p apk-download
           "$sdktools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
           "$sdktools/aapt" dump badging "$apk" >> apk-download/verification.txt
-          grep "package: name='com.ewaste.marketplace.nativeapp' versionCode='1' versionName='1.0-native'" apk-download/verification.txt
+          grep "package: name='com.ewaste.marketplace.nativeapp' versionCode='2' versionName='2.0-native'" apk-download/verification.txt
           if grep -E 'application-testOnly|application-debuggable' apk-download/verification.txt; then exit 1; fi
           if grep -R -E 'import android.webkit|com.getcapacitor' native-android/app/src/main; then exit 1; fi
-          cp "$apk" apk-download/E-Waste-Marketplace-native-v1.apk
+          cp "$apk" apk-download/E-Waste-Marketplace-native-v2.apk
           sha256sum apk-download/*.apk >> apk-download/verification.txt
       - name: Enable emulator acceleration
         run: |
@@ -68,9 +68,24 @@ jobs:
             adb shell pidof com.ewaste.marketplace.nativeapp
             adb exec-out screencap -p > apk-download/native-home.png
             cd native-android && bash ./gradlew connectedDebugAndroidTest --no-daemon
+      - name: Report device test failures
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for path in glob.glob('native-android/app/build/outputs/androidTest-results/**/*.xml',recursive=True):
+              try:
+                  for case in ET.parse(path).iter('testcase'):
+                      for failure in list(case.findall('failure'))+list(case.findall('error')):
+                          message=(case.get('name','')+' '+(failure.text or failure.get('message','')))[:3500]
+                          print('::error::'+message.replace('%','%25').replace('\r','%0D').replace('\n','%0A'))
+              except ET.ParseError:
+                  pass
+          PY
       - uses: actions/upload-artifact@v4
         with:
-          name: E-Waste-Marketplace-native-v1
+          name: E-Waste-Marketplace-native-v2
           path: apk-download/
           retention-days: 14
           if-no-files-found: error

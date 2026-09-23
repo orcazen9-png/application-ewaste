@@ -3,6 +3,7 @@ import {transact} from '../dist/transactions.js';
 import {identification} from './identification.js';
 import {d1Bucket} from './d1-photos.js';
 import {lotAssessment} from './lot-assessments.js';
+import {collectorProjection,marketCommand} from './collector-market.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -28,7 +29,7 @@ export async function api(request,env){
   if(!space)fail('Workspace code was not recognized.',401);
   if(path==='/api/lot-assessments')return json(await lotAssessment(request,env,space));
   if(path.startsWith('/api/identification'))return json(await identification(request,env,space));
-  if(path==='/api/state'&&request.method==='GET')return json({state:JSON.parse(space.state_json),version:space.version});
+  if(path==='/api/state'&&request.method==='GET')return json({state:collectorProjection(JSON.parse(space.state_json)),version:space.version});
   const photoMatch=path.match(/^\/api\/photos\/([^/]+)$/);
   if(photoMatch){
     const id=photoMatch[1];if(!idPattern.test(id))fail('Invalid photo reference.');const objectKey=`${space.id}/${id}`;
@@ -50,7 +51,7 @@ export async function api(request,env){
       if(receipt){if(receipt.payload_hash!==hash)fail('This retry does not match the original action.',409);return json({result:JSON.parse(receipt.result_json),replayed:true});}
       const current=await env.DB.prepare('SELECT * FROM spaces WHERE id=?').bind(space.id).first();
       const state=JSON.parse(current.state_json);
-      if(command.type==='list'&&command.input?.wasteAssessment){
+      if(['list','market_order'].includes(command.type)&&command.input?.wasteAssessment){
         const assessment=state.lotAssessments?.find(a=>a.id===command.input.wasteAssessment.id&&a.photoId===command.input.photoId);
         if(!assessment)fail('Run the photo assessment in this workspace before saving it.',400);
         // Category corrections are allowed; provider evidence always comes from the saved assessment.
@@ -58,11 +59,11 @@ export async function api(request,env){
       }
       const existing=state.lots.find(l=>l.id===(command.type==='list'?command.input?.id:command.lotId));
       if(existing&&(command.type==='list'?command.input?.expectedVersion:command.expectedVersion)===undefined)fail('Refresh the transaction before changing it.',409);
-      if(['list','handover','sample'].includes(command.type)){
+      if(['list','handover','sample'].includes(command.type)||(command.type==='market_order'&&command.input?.photoId)){
         const photo=command.input?.photoId;if(!idPattern.test(photo||'')||!await env.BUCKET.head(`${space.id}/${photo}`))fail('Upload the photo before submitting this record.');
       }
       let result;
-      try{result=command.type==='prices'?(evolvePrices(state),{updated:true}):transact(state,command);}catch(error){fail(error.message,409);}
+      try{result=command.type.startsWith('market_')?marketCommand(state,command):command.type==='prices'?(evolvePrices(state),{updated:true}):transact(state,command);}catch(error){fail(error.message,409);}
       for(const lot of state.lots)lot.storage='synced';
       state.revision=current.version+1;
       // Both writes commit together. The conditional insert cannot record a losing CAS operation.

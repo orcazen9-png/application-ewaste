@@ -6,6 +6,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 public class ApiClient {
+    public static final class ApiException extends IOException { public final int status;ApiException(int status,String message){super(message);this.status=status;} }
     public static final String ORIGIN="https://ewaste-demo.ewaste-marketplace.workers.dev";
     public JSONObject json(String method,String path,String code,JSONObject body)throws Exception{
         byte[] response=send(method,path,code,body==null?null:body.toString().getBytes(StandardCharsets.UTF_8),"application/json");return new JSONObject(new String(response,StandardCharsets.UTF_8));
@@ -25,7 +26,7 @@ public class ApiClient {
         try{
             if(body!=null){connection.setDoOutput(true);connection.setFixedLengthStreamingMode(body.length);try(OutputStream stream=connection.getOutputStream()){stream.write(body);}}
             int status=connection.getResponseCode();InputStream stream=status>=200&&status<300?connection.getInputStream():connection.getErrorStream();byte[] bytes=stream==null?new byte[0]:read(stream,8*1024*1024);
-            if(status<200||status>=300){String message="Request failed ("+status+").";try{message=new JSONObject(new String(bytes,StandardCharsets.UTF_8)).optString("error",message);}catch(Exception ignored){}throw new IOException(message);}
+            if(status<200||status>=300){String message="Request failed ("+status+").";try{message=new JSONObject(new String(bytes,StandardCharsets.UTF_8)).optString("error",message);}catch(Exception ignored){}throw new ApiException(status,message);}
             return bytes;
         }finally{connection.disconnect();}
     }
