@@ -12,6 +12,12 @@ Web and Android transaction prototype. Prices, buyers, pickup progress, and paym
 - Labelled sample sales and sample-only reset that preserves user lots.
 - Shared workspaces with durable D1 records and R2 photos, offline publication queues, atomic version checks, and idempotent transaction retries.
 
+## Image recognition development
+
+A separate local review desk and PyTorch training pipeline support the 46 ITEW/CEEW equipment categories. See [ml/README.md](ml/README.md) and [the category mapping](docs/recognition-taxonomy.md). Downloaded photos, review decisions and model files stay in ignored `work/ml/`. This is a dataset/training foundation, not a trained or deployed recognition feature; existing material pricing is unchanged.
+
+The current model scope is ITEW1–27 (CEEW deferred). The lot form asks the local recognition service for up to three ITEW suggestions after a photo is added; the user confirms or corrects one (or marks the lot as not ITEW equipment) before it is saved. Until an ITEW model is trained, or where no service is reachable, the form says suggestions are unavailable and the category is chosen manually.
+
 ## Run and verify
 
 Requires Node.js 22.13+ (24 recommended).

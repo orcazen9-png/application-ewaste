@@ -1,5 +1,5 @@
 import {readState,changeState,getPhoto} from './store.js';
-import {newId} from './domain.js';
+import {newId,createState} from './domain.js';
 import {transact} from './transactions.js';
 export const HOSTED_ENDPOINT='https://ewaste-collector-marketplace-9png.animesh0909.chatgpt.site';
 let active;
@@ -11,7 +11,7 @@ async function request(config,path,options={}){
 export async function connectWorkspace(endpoint,code,create=false){
   const url=new URL(endpoint||location.origin);if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))throw new Error('Use an HTTPS server address.');
   if(url.username||url.password||url.search||url.hash||url.pathname!=='/')throw new Error('Use only the server origin, without a path.');
-  const current=await readState();if(current.sync?.code)throw new Error('This device is already connected. Use a separate browser profile for a different workspace.');
+  const current=await readState()??createState();if(current.sync?.code)throw new Error('This device is already connected. Use a separate browser profile for a different workspace.');
   if(current.lots.some(l=>!['draft','listed','cancelled'].includes(l.status)))throw new Error('This device has local transactions. Keep them here and use a fresh browser profile to join a shared workspace.');
   let config={endpoint:url.origin,code:code.trim()};
   const data=create?await request(config,'/api/spaces',{method:'POST'}):await request(config,'/api/state');
@@ -19,7 +19,7 @@ export async function connectWorkspace(endpoint,code,create=false){
   await changeState(s=>{s.sync=config;s.outbox=s.lots.filter(l=>l.status==='listed').map(l=>({operationId:newId('operation'),command:{type:'list',input:lotInput(l,s)},lotId:l.id}));for(const l of s.lots.filter(l=>l.status==='listed'))l.storage='waiting';});
   await synchronize();return config;
 }
-export const lotInput=(lot,state)=>({...Object.fromEntries(['id','materialId','locality','weight','description','condition','photoId'].map(k=>[k,lot[k]])),priorEstimate:lot.originalEstimate||undefined,priorCreatedAt:lot.createdAt,priorEvents:state?.events.filter(e=>e.lotId===lot.id)});
+export const lotInput=(lot,state)=>({...Object.fromEntries(['id','materialId','locality','weight','description','condition','photoId','equipmentCode','equipmentDecision'].map(k=>[k,lot[k]])),priorEstimate:lot.originalEstimate||undefined,priorCreatedAt:lot.createdAt,priorEvents:state?.events.filter(e=>e.lotId===lot.id)});
 export function queueListing(state,lot,previous){
   if(!state.sync?.code)return;
   const input=lotInput(lot,state);if(previous?.storage==='synced')input.expectedVersion=previous.version;

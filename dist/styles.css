@@ -9,3 +9,13 @@
 .transaction-card{padding:24px;margin:20px 0}.transaction-card h2,.transaction-card h3{margin-bottom:16px}.transaction-card h3{margin-top:24px}.transaction-card .btn{margin:6px 4px 6px 0}.offer-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid #e3ebe5}.offer-row p{margin:5px 0}.quote-summary{display:flex;flex-direction:column;gap:8px;background:#eff6f0;padding:16px;border-radius:12px;margin:18px 0}.transaction-card summary{cursor:pointer;padding:14px 0;font-weight:600}.demo-actions{border:1px dashed #b9cdbf;padding:12px;border-radius:12px;margin-top:18px}.notification-row{display:flex;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid #e3ebe5;color:inherit;text-decoration:none}.pairing-code{display:block;overflow-wrap:anywhere;user-select:all;padding:12px;background:#eff6f0}.tabs{overflow:auto}.transaction-card input{max-width:100%}.transaction-card table{width:100%;border-collapse:collapse}.transaction-card td,.transaction-card th{text-align:left;padding:12px;border-bottom:1px solid #e3ebe5}
 @media(max-width:600px){.transaction-card{padding:18px}.offer-row,.notification-row{align-items:flex-start;flex-direction:column}.transaction-card .row{flex-wrap:wrap}}
 @media print{.sidebar,.topbar,.connection-strip,.no-print,.bottom-nav{display:none!important}.main{margin:0!important}.content{padding:0!important}.receipt{border:0;box-shadow:none}.receipt table{break-inside:avoid}}
+/* ITEW equipment suggestion: the user confirms or corrects before anything is saved. */
+.suggestion-box{background:#f5f9f7;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.suggestion-list{margin:8px 0;padding:0;list-style:none;display:grid;gap:8px}
+.suggestion-list li{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;line-height:1.4}
+.suggestion-list .btn.suggestion-pick{margin:0;min-height:38px;padding:8px 14px;flex:none}
+.suggestion-warn{color:#875717;background:#fff2d9;border-radius:6px;padding:4px 8px;margin-top:6px}
+#equipment-suggestion>.btn{margin:0 0 10px}
+#equipment-status:not(:empty){display:block;margin-top:6px;font-weight:600;color:var(--green)}
+.detail-fields small{display:block}
+@media(max-width:740px){.suggestion-list li{flex-direction:column;align-items:stretch}.suggestion-list .btn.suggestion-pick{width:100%}}

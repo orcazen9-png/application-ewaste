@@ -10,7 +10,8 @@
     "check": "node scripts/check.mjs",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@capacitor/android": "8.5.1",
@@ -21,6 +22,7 @@
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "esbuild": "^0.28.2",
-    "fake-indexeddb": "^6.2.5"
+    "fake-indexeddb": "^6.2.5",
+    "wrangler": "^4.137.0"
   }
 }

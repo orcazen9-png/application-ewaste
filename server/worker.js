@@ -1,5 +1,7 @@
 import {createState,evolvePrices} from '../dist/domain.js';
 import {transact} from '../dist/transactions.js';
+import {identification} from './identification.js';
+import {d1Bucket} from './d1-photos.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -10,6 +12,8 @@ export async function api(request,env){
   const url=new URL(request.url),path=url.pathname;
   if(path==='/api/health')return json({ok:true});
   if(path==='/api/spaces'&&request.method==='POST'){
+    // Public hosts (no Sites sign-in in front) share one pre-created workspace through its join link instead.
+    if(env.SPACE_CREATION==='disabled')fail('New workspaces are turned off here. Open the demo join link or scan its QR code.',403);
     // Sites supplies this header after sign-in; it is never supplied by client JavaScript.
     if(!env.LOCAL_DEMO&&!request.headers.get('oai-authenticated-user-id'))fail('Open the website and sign in to create a demo workspace.',401);
     const code=Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -21,6 +25,7 @@ export async function api(request,env){
   if(!keyPattern.test(code))fail('Enter a valid workspace pairing code.',401);
   const space=await env.DB.prepare('SELECT * FROM spaces WHERE access_hash=?').bind(await digest(code)).first();
   if(!space)fail('Workspace code was not recognized.',401);
+  if(path.startsWith('/api/identification'))return json(await identification(request,env,space));
   if(path==='/api/state'&&request.method==='GET')return json({state:JSON.parse(space.state_json),version:space.version});
   const photoMatch=path.match(/^\/api\/photos\/([^/]+)$/);
   if(photoMatch){
@@ -64,6 +69,7 @@ export async function api(request,env){
   fail('Not found.',404);
 }
 export default {async fetch(request,env){
+  if(!env.BUCKET&&env.DB)env={...env,BUCKET:d1Bucket(env.DB)};
   const url=new URL(request.url),origin=request.headers.get('Origin');
   const allowed=origin===url.origin||['https://localhost','capacitor://localhost','http://localhost'].includes(origin)||(env.LOCAL_DEMO&&/^http:\/\/127\.0\.0\.1:\d+$/.test(origin||''));
   const cors=allowed?{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Allow-Methods':'GET, POST, PUT, OPTIONS','Vary':'Origin'}:{};

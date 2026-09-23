@@ -7,3 +7,8 @@ export const receipts=sqliteTable('operation_receipts',{
   spaceId:text('space_id').notNull().references(()=>spaces.id),operationId:text('operation_id').notNull(),
   payloadHash:text('payload_hash').notNull(),result:text('result_json').notNull()
 },t=>[primaryKey({columns:[t.spaceId,t.operationId]})]);
+// Photo bytes for hosts without an object store (e.g. a Cloudflare account without R2). Base64 text keeps
+// reads cheap in the Worker; D1 caps a value at 2,000,000 bytes, so photos stay below 1.4 MB.
+export const photos=sqliteTable('photos',{
+  key:text('key').primaryKey(),contentType:text('content_type').notNull(),data:text('data_base64').notNull()
+});

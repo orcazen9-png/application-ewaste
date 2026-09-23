@@ -4,6 +4,9 @@ node_modules/
 !.env.example
 .sites-runtime/
 work/
+__pycache__/
+*.pyc
+.venv/
 # Kept local pending explicit approval for public publication.
 docs/PRD.md
 *.jks
@@ -14,3 +17,4 @@ android/**/build/
 dist/client/
 dist/server/
 dist/.openai/
+.wrangler/

@@ -1,0 +1,26 @@
+# Public Cloudflare demo (workers.dev). Deploy: npm run deploy
+# The Gemini key is a secret: npx wrangler secret put GEMINI_API_KEY (never put it in this file).
+name = "ewaste-demo"
+main = "dist/server/index.js"
+compatibility_date = "2026-06-01"
+# Native Buffer base64 keeps photo handling within the free-plan CPU limit (server/base64.js).
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[build]
+command = "npm run build"
+
+[vars]
+GEMINI_MODEL = "gemini-3.1-flash-lite"
+# Anyone can send the Sites sign-in header here, so only the pre-created shared workspace is available.
+SPACE_CREATION = "disabled"
+
+# No R2 bucket: photos are stored in D1 (server/d1-photos.js).
+[[d1_databases]]
+binding = "DB"
+database_name = "ewaste-demo"
+database_id = "e4edc006-aa14-41b6-bddb-6f6c5cf15820"
+migrations_dir = "drizzle"
+
+[observability]
+enabled = true
