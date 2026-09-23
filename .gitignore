@@ -18,3 +18,7 @@ dist/client/
 dist/server/
 dist/.openai/
 .wrangler/
+
+native-android/.gradle/
+native-android/local.properties
+native-android/**/build/

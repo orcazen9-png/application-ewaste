@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Native Android APK
 on:
   push:
     branches: [main, cloudflare-demo]
@@ -8,7 +8,7 @@ permissions:
 jobs:
   android:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,39 +20,65 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v4
-      # Reuse the same demo signing certificate for subsequent CI updates.
-      # This cannot recover the key from APKs built by earlier runners.
       - uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
-          key: android-demo-signing-v1
-      - run: npm ci
-      - run: npm run check
-      - run: npm test
-      - run: npm run build
-      - run: npx cap sync android
-      - name: Build debug APK
-        working-directory: android
-        run: bash ./gradlew assembleDebug --no-daemon
-      - name: Verify and name the demo APK
+          key: android-native-demo-signing-v1
+      - run: npm ci && npm test
+      - name: Compile native application and device tests
+        working-directory: native-android
+        shell: bash
+        run: |
+          set +e
+          bash ./gradlew assembleRelease assembleDebug assembleDebugAndroidTest --no-daemon 2>&1 | tee build.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" != 0 ]; then
+            grep -A 8 -E 'error:|What went wrong|Execution failed' build.log | head -80 | while IFS= read -r line; do echo "::error::$line"; done
+          fi
+          exit "$result"
+      - name: Verify native APK signature and manifest
         shell: bash
         run: |
           set -euo pipefail
-          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
-          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          sdktools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          apk=native-android/app/build/outputs/apk/release/app-release.apk
           mkdir -p apk-download
-          "$tools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
-          "$tools/aapt" dump badging "$apk" >> apk-download/verification.txt
-          grep "package: name='com.ewaste.marketplace.demo' versionCode='4' versionName='0.4.0'" apk-download/verification.txt
-          if grep -q 'application-testOnly' apk-download/verification.txt; then
-            echo 'APK must support ordinary installation, not only adb -t.'
-            exit 1
-          fi
-          cp "$apk" apk-download/ewaste-create-lot-v0.4.0.apk
-          sha256sum apk-download/ewaste-create-lot-v0.4.0.apk >> apk-download/verification.txt
+          "$sdktools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
+          "$sdktools/aapt" dump badging "$apk" >> apk-download/verification.txt
+          grep "package: name='com.ewaste.marketplace.nativeapp' versionCode='1' versionName='1.0-native'" apk-download/verification.txt
+          if grep -E 'application-testOnly|application-debuggable' apk-download/verification.txt; then exit 1; fi
+          if grep -R -E 'import android.webkit|com.getcapacitor' native-android/app/src/main; then exit 1; fi
+          cp "$apk" apk-download/E-Waste-Marketplace-native-v1.apk
+          sha256sum apk-download/*.apk >> apk-download/verification.txt
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 16 installation and native photo flow
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            adb install native-android/app/build/outputs/apk/release/app-release.apk
+            adb shell am start -W -n com.ewaste.marketplace.nativeapp/com.ewaste.nativeapp.MainActivity
+            adb shell pidof com.ewaste.marketplace.nativeapp
+            adb exec-out screencap -p > apk-download/native-home.png
+            cd native-android && bash ./gradlew connectedDebugAndroidTest --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: ewaste-create-lot-v0.4.0
+          name: E-Waste-Marketplace-native-v1
           path: apk-download/
           retention-days: 14
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-build-diagnostics
+          path: |
+            native-android/build.log
+            native-android/app/build/reports/androidTests/
+            native-android/app/build/outputs/androidTest-results/
