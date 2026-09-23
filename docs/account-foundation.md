@@ -1,6 +1,6 @@
 # Account foundation — implementation milestone
 
-24 September 2026. Development branch: `codex/account-foundation`. This implements the first part of M2 in the [production plan](production-requirements-plan.md); it is not the completed marketplace or a replacement release for the phone.
+24 September 2026. Development branch: `codex/account-foundation`. This implements the first part of M2 in the [production plan](production-requirements-plan.md); it is not the completed marketplace or a replacement release for the phone. The subsequent `codex/marketplace-orders` branch extends this baseline; see [marketplace scope and verification](marketplace-orders.md) for the newer request/order and Gemini paths.
 
 ## Implemented
 

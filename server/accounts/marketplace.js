@@ -11,6 +11,7 @@ export function money(value,optional=false) {
 }
 export const quantity=(n,unit)=>n===null?null:unit==='kg'?`${Math.floor(n/1000)}.${String(n%1000).padStart(3,'0')}`:String(n);
 export const rupees=n=>n===null?null:`${Math.floor(n/100)}.${String(n%100).padStart(2,'0')}`;
+export function materialAmount(ratePaise,amount,unit){const divisor=unit==='kg'?1000n:1n;return Number((BigInt(ratePaise)*BigInt(amount)+divisor/2n)/divisor);}
 function conflict(error) {
   const found=error.message?.match(/MARKET_CONFLICT: ([^\n]+)/);
   if(found)fail(found[1].replace(/: SQLITE_CONSTRAINT.*$/,''),409);
@@ -136,7 +137,7 @@ async function requestsRoute(request,env,user,record,action){
     const amount=quantityBase(input.quantity,s.item.unit),why=exclusions(r,s,amount);
     if(why.length)fail(why.join('. ')+'.',409);
     if(!JSON.parse(r.modes_json).includes(input.mode))fail('Choose an offered pickup/drop-off mode.');
-    const ask=money(input.ask,true),estimate=Math.floor((r.rate_paise*amount+(r.unit==='kg'?500:0))/(r.unit==='kg'?1000:1));
+    const ask=money(input.ask,true),estimate=materialAmount(r.rate_paise,amount,r.unit);
     const photos=await rows(env.DB.prepare('SELECT file_id FROM lot_files WHERE lot_id=?').bind(s.lot.id));
     if(input.sharePhotos!==true&&photos.length)fail('Confirm sharing these lot photos with the selected recycler.');
     const snapshot={lotTitle:s.lot.title,locality:s.lot.locality,description:s.item.description,condition:s.item.condition,broadCode:s.item.broad_code,detailedCode:s.item.detailed_code,

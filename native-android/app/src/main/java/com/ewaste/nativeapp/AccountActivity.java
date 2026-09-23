@@ -166,7 +166,7 @@ public class AccountActivity extends AppCompatActivity {
         JSONObject item=lines.getJSONObject(itemIndex);
         String[] categories=new String[Catalog.NAMES.length+1];categories[0]="Choose a category";System.arraycopy(Catalog.NAMES,0,categories,1,Catalog.NAMES.length);
         int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(item.optString("broadCode")))selected=i+1;
-        choices("Waste category",categories,selected,pos->{saveField(item,"broadCode",pos==0?JSONObject.NULL:Catalog.code(pos-1));saveField(item,"reviewState",pos==0?"needs_review":"confirmed");});
+        choices("Waste category",categories,selected,pos->{Object code=pos==0?JSONObject.NULL:Catalog.code(pos-1);if(!Objects.equals(item.opt("broadCode"),code))saveField(item,"detailedCode",JSONObject.NULL);saveField(item,"broadCode",code);saveField(item,"reviewState",pos==0?"needs_review":"confirmed");});
         choices("Unit",new String[]{"kg","piece"},item.optString("unit").equals("piece")?1:0,pos->saveField(item,"unit",pos==0?"kg":"piece"));
         field("Quantity",item.isNull("quantity")?"":item.optString("quantity"),"account-lot-quantity",InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12,v->saveField(item,"quantity",v));
         field("Description",item.optString("description"),"account-lot-description",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,1000,v->saveField(item,"description",v));

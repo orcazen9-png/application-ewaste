@@ -93,7 +93,7 @@ final class MarketplaceScreens {
         int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(d.optString("broadCode")))selected=i;
         a.choices("Broad category",Catalog.NAMES,selected,pos->{put(d,"broadCode",Catalog.code(pos));persist();});
         a.label("Detailed category: "+(d.isNull("detailedCode")||d.optString("detailedCode").isEmpty()?"Any within broad category":d.optString("detailedCode")),14);
-        a.button("Choose detailed category (106 codes)","market-detailed",()->chooseCategory(code->{put(d,"detailedCode",code);persist();a.render();},true));
+        a.button("Choose detailed category (106 codes)","market-detailed",()->chooseCategory(code->{put(d,"detailedCode",code);try{JSONArray all=a.store.cached(a.account(),"catalogue").getJSONArray("categories");for(int i=0;i<all.length();i++){JSONObject category=all.getJSONObject(i);if(category.optString("code").equals(code)&&category.has("broad_category_id"))put(d,"broadCode",category.getString("broad_category_id"));}}catch(Exception error){a.showError(error);}persist();a.render();},true));
         a.choices("Quote and quantity unit",new String[]{"kg","piece"},d.optString("unit").equals("piece")?1:0,pos->{put(d,"unit",pos==0?"kg":"piece");persist();});
         textField(d,"rate","Rate in ₹ per selected unit",InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12);
         textField(d,"minimum","Minimum quantity per request",InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12);
@@ -232,7 +232,7 @@ final class MarketplaceScreens {
             if(items!=null)for(int i=0;i<items.length();i++)text.append("\n").append(items.optJSONObject(i).optString("code")).append(": ").append(items.optJSONObject(i).optString("evidence"));
             AlertDialog.Builder dialog=new AlertDialog.Builder(a).setTitle("Review identification").setMessage(text.toString()).setNegativeButton("Keep manual selection",null);
             if(items!=null&&items.length()>0)dialog.setPositiveButton("Review a suggested category",(d,w)->{String[] choices=new String[items.length()];for(int i=0;i<choices.length;i++)choices[i]=items.optJSONObject(i).optString("code");new AlertDialog.Builder(a).setTitle("Confirm category").setItems(choices,(di,pos)->{
-                if(draft!=null){try{JSONObject current=a.store.draft(owner,draft.getString("id")),line=current.getJSONArray("items").getJSONObject(a.itemIndex);line.put("broadCode",choices[pos]).put("reviewState","confirmed");a.store.save(owner,current);a.draft=current;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}}
+                if(draft!=null){try{JSONObject current=a.store.draft(owner,draft.getString("id")),line=current.getJSONArray("items").getJSONObject(a.itemIndex);if(!line.optString("broadCode").equals(choices[pos]))line.put("detailedCode",JSONObject.NULL);line.put("broadCode",choices[pos]).put("reviewState","confirmed");a.store.save(owner,current);a.draft=current;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}}
                 else {JSONObject input=input(request.optInt("version"));put(input,"code",choices[pos]);change("/requests/"+request.optString("id")+"/review-category","POST",input,"request");}
             }).setNegativeButton("Back",null).show();});dialog.show();
         });

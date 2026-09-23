@@ -26,6 +26,7 @@ function normalize(input) {
     const broadCode = item.broadCode || null, detailedCode = item.detailedCode || null;
     if (broadCode !== null && !broadCodes.has(broadCode)) fail('Unknown broad category.');
     if (detailedCode !== null && !detailedCodes.has(detailedCode)) fail('Unknown equipment category.');
+    if (detailedCode !== null && broadCode !== null && CATALOG.categories.find(c=>c.code===detailedCode).broad_category_id!==broadCode) fail('The detailed category does not belong to this broad group. Review the category.');
     if (!['unknown','unsorted','sorted','damaged'].includes(item.condition)) fail('Choose a valid condition.');
     if (!['needs_review','confirmed'].includes(item.reviewState) || (item.reviewState === 'confirmed' && !broadCode)) fail('Confirm a category or mark it for review.');
     return {id: itemId, broadCode, detailedCode, description: text(item.description, 1000, 'description'),

@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.Assert.*;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static androidx.test.espresso.action.ViewActions.click;
 
 @RunWith(AndroidJUnit4.class)
@@ -45,7 +46,7 @@ public class MarketplaceTest {
             assertEquals("55.25",api.requirement.getString("rate"));assertEquals(1,api.requirementWrites);
             scenario.onActivity(a->{a.root.findViewWithTag("market-home").performClick();a.root.findViewWithTag("account-requests").performClick();});idle(scenario);
             scenario.onActivity(a->a.root.findViewWithTag("market-request-"+api.request.optString("id")).performClick());idle(scenario);
-            scenario.onActivity(a->a.root.findViewWithTag("market-accept").performClick());onView(withText("Accept")).perform(click());idle(scenario);
+            scenario.onActivity(a->a.root.findViewWithTag("market-accept").performClick());onView(withText("Accept")).inRoot(isDialog()).perform(click());idle(scenario);
             scenario.onActivity(a->{assertEquals("order",a.market.view());assertEquals("10000.00",a.market.data().optJSONObject("order").optString("materialAmount"));assertNull(a.root.findViewWithTag("mark-paid"));});
             scenario.recreate();idle(scenario);
             scenario.onActivity(a->{assertEquals("order",a.market.view());assertNotNull(a.root.findViewWithTag("market-propose"));assertNotNull(a.root.findViewWithTag("market-cancel"));});
@@ -59,7 +60,7 @@ public class MarketplaceTest {
         vault.save(new JSONObject().put("token","ews_"+String.join("",Collections.nCopies(64,"d"))).put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",api.user));
         try(ActivityScenario<AccountActivity> scenario=ActivityScenario.launch(AccountActivity.class)){
             idle(scenario);scenario.onActivity(a->a.root.findViewWithTag("account-open-"+api.lot.optString("id")).performClick());
-            scenario.onActivity(a->a.root.findViewWithTag("account-find-matches").performClick());onView(withText("Find matches")).perform(click());idle(scenario);
+            scenario.onActivity(a->{try{assertEquals("synced",a.store.draft(a.account(),a.draft.getString("id")).getString("syncState"));}catch(Exception e){throw new AssertionError(e);}a.root.findViewWithTag("account-find-matches").performClick();});onView(withText("Find matches")).inRoot(isDialog()).perform(click());idle(scenario);
             scenario.onActivity(a->a.root.findViewWithTag("market-review-"+api.requirement.optString("id")).performClick());
             scenario.onActivity(a->a.root.findViewWithTag("market-submit-request").performClick());idle(scenario);
             scenario.onActivity(a->{assertEquals("request",a.market.view());assertEquals("submitted",a.market.data().optJSONObject("request").optString("state"));});

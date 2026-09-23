@@ -12,6 +12,7 @@ export async function assessmentRoute(request,env,user,path){
   }
   if(request.method!=='POST')fail('Method not supported.',405);
   const input=await body(request,3000),fileId=requireId(input.fileId),scope=user.role==='recycler'?'detailed':'broad',requestId=input.requestId||null;
+  if(user.role==='collector'&&requestId!==null)fail('Collector identification uses your own draft photo.');
   let file;
   if(user.role==='recycler')file=await sharedPhoto(env,user,requireId(requestId),fileId);
   else file=await env.DB.prepare("SELECT * FROM files WHERE id=? AND owner_user_id=? AND state='ready'").bind(fileId,user.id).first();

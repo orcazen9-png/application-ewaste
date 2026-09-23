@@ -1,14 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp} from 'node:fs/promises';
+import {mkdtemp,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import worker from '../server/worker.js';
 import {localBindings} from '../scripts/local-backend.mjs';
 import {hash} from '../server/accounts/common.js';
 import {CATALOG} from '../dist/waste-catalog.js';
+import {materialAmount} from '../server/accounts/marketplace.js';
 const id=()=>crypto.randomUUID(),future=()=>new Date(Date.now()+30*86400000).toISOString();
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2ioAAAAASUVORK5CYII=','base64');
+test('marketplace migration sorts after the installed account foundation for timestamp-based migrators',async()=>{
+  const journal=JSON.parse(await readFile('drizzle/meta/_journal.json','utf8'));
+  for(let i=1;i<journal.entries.length;i++)assert.ok(journal.entries[i].when>journal.entries[i-1].when,'Migrations must increase so an existing installation does not skip the new schema');
+});
+test('quote calculations keep exact paise even when the intermediate grams product exceeds safe Number precision',()=>{
+  assert.equal(materialAmount(9999999999,49999999,'kg'),499999989950000);
+  assert.equal(materialAmount(1,500,'kg'),1);
+  assert.equal(materialAmount(1,499,'kg'),0);
+  assert.equal(materialAmount(12345,3,'piece'),37035);
+});
 async function fixture(t){
   const env=await localBindings(await mkdtemp(path.join(tmpdir(),'ewaste-market-')));t.after(()=>env.close());env.ACCOUNTS_ENABLED='true';
   async function user(role='collector',verified=true){
