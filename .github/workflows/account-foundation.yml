@@ -1,7 +1,7 @@
 name: Verify account foundation
 on:
   push:
-    branches: [codex/account-foundation]
+    branches: [codex/account-foundation, codex/marketplace-orders]
     paths:
       - 'server/**'
       - 'native-android/**'
@@ -59,8 +59,9 @@ jobs:
           profile: pixel_7
           disable-animations: true
           script: |
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest --no-daemon
             timeout 20s adb pull /sdcard/account-draft.png native-android/native-account-draft.png
+            timeout 20s adb pull /sdcard/market-order.png native-android/native-market-order.png
       - name: Capture emulator details on failure
         if: failure()
         run: timeout 20s adb logcat -d -s AndroidRuntime > native-android/account-crash.log || true
@@ -73,4 +74,5 @@ jobs:
             native-android/app/build/outputs/androidTest-results/
             native-android/account-crash.log
             native-android/native-account-draft.png
+            native-android/native-market-order.png
           retention-days: 7

@@ -28,6 +28,8 @@ public class AccountActivity extends AppCompatActivity {
     AccountApi api;
     AccountStore store;
     SessionVault vault;
+    MarketplaceScreens market;
+    int itemIndex=0;
     JSONObject session,draft;
     LinearLayout root,page;
     String screen="home",challengeId="",phone="",selectedRole="collector",selectedLanguage="en";
@@ -42,7 +44,7 @@ public class AccountActivity extends AppCompatActivity {
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
 
     @Override public void onCreate(Bundle saved){
-        super.onCreate(saved);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);
+        super.onCreate(saved);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);market=new MarketplaceScreens(this);
         try {
             try{session=vault.read();}catch(Exception unreadableSession){vault.clear();session=null;}
             if(session!=null&&Instant.parse(session.getString("expiresAt")).isBefore(Instant.now())){vault.clear();session=null;}
@@ -51,6 +53,7 @@ public class AccountActivity extends AppCompatActivity {
                 selectedRole=saved.getString("role","collector");selectedLanguage=saved.getString("language","en");resendAt=saved.getLong("resendAt",0);
                 cameraId=saved.getString("cameraId","");cameraAccount=saved.getString("cameraAccount","");cameraDraft=saved.getString("cameraDraft","");
                 String draftId=saved.getString("draftId","");if(session!=null&&!draftId.isEmpty())draft=store.draft(account(),draftId);
+                itemIndex=saved.getInt("itemIndex",0);if(session!=null&&screen.equals("market"))market.restore();
             }
             getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}});
             drainRevocations();render();if(session!=null)refresh();
@@ -61,6 +64,7 @@ public class AccountActivity extends AppCompatActivity {
         out.putString("role",selectedRole);out.putString("language",selectedLanguage);out.putLong("resendAt",resendAt);
         out.putString("cameraId",cameraId);out.putString("cameraAccount",cameraAccount);out.putString("cameraDraft",cameraDraft);
         if(draft!=null)out.putString("draftId",draft.optString("id"));
+        out.putInt("itemIndex",itemIndex);if(screen.equals("market"))market.persist();
     }
     @Override protected void onDestroy(){tasks.submit(()->store.close());tasks.shutdown();super.onDestroy();}
     String account(){return session==null?"":session.optJSONObject("user").optString("id");}
@@ -90,7 +94,7 @@ public class AccountActivity extends AppCompatActivity {
         label("E-Waste Marketplace",24);
         try {
             if(session==null){signIn();return;}
-            if(screen.equals("edit")&&draft!=null)editor();else if(screen.equals("profile"))profile();else home();
+            if(screen.equals("edit")&&draft!=null)editor();else if(screen.equals("profile"))profile();else if(screen.equals("market"))market.render();else home();
         }catch(Exception error){label("Your saved drafts are kept. "+message(error),15);}
         if(working)label("Connecting…",14);
     }
@@ -128,6 +132,9 @@ public class AccountActivity extends AppCompatActivity {
         label(collector?"Your lots":"Recycler account",23);
         label(user.optString("displayName","").isEmpty()?user.getString("mobile"):user.getString("displayName"),16);
         button("Profile","account-profile",()->{screen="profile";render();});
+        market.pending();
+        button("Orders","account-orders",()->market.load("orders","/orders"));
+        button(collector?"My requests":"Incoming requests","account-requests",()->market.load("requests","/requests"));
         if(collector){
             button("＋ Create a lot","account-create",this::createDraft);
             button("Sync saved drafts","account-sync",this::syncAll);
@@ -137,7 +144,7 @@ public class AccountActivity extends AppCompatActivity {
                 String state=lot.optString("syncState");label((title.isEmpty()?"Untitled lot":title)+" · "+(state.equals("synced")?"Saved online":state.equals("conflict")?"Review needed":"Saved on this phone"),17);
                 button("Open lot","account-open-"+id,()->{try{draft=store.draft(account(),id);screen="edit";render();}catch(Exception e){showError(e);}});
             }
-        }else label("Recycler profile",16);
+        }else button("Buying portfolio","account-portfolio",()->market.load("portfolio","/requirements"));
         button("Sign out","account-logout",this::logout);
     }
     void createDraft(){try{
@@ -145,20 +152,25 @@ public class AccountActivity extends AppCompatActivity {
             .put("description","").put("condition","unknown").put("unit","kg").put("quantity","").put("reviewState","needs_review");
         draft=new JSONObject().put("id",UUID.randomUUID().toString()).put("title","").put("locality",session.getJSONObject("user").optString("locality"))
             .put("notes","").put("taxonomyVersion",TAXONOMY).put("items",new JSONArray().put(item)).put("fileIds",new JSONArray());
-        store.save(account(),draft);screen="edit";render();
+        store.save(account(),draft);itemIndex=0;screen="edit";render();
     }catch(Exception e){showError(e);}}
     void saveField(JSONObject target,String key,Object value){try{if(!Objects.equals(target.opt(key),value)){target.put(key,value);store.save(account(),draft);}}catch(Exception e){showError(e);}}
     void editor()throws Exception {
         label("Create a lot",23);label("Changes are saved on this phone as you type.",14);
         field("Lot name",draft.optString("title"),"account-lot-title",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"title",v));
         field("Collection area",draft.optString("locality"),"account-lot-area",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"locality",v));
-        JSONObject item=draft.getJSONArray("items").getJSONObject(0);
+        JSONArray lines=draft.getJSONArray("items");itemIndex=Math.max(0,Math.min(itemIndex,lines.length()-1));
+        label("Material line "+(itemIndex+1)+" of "+lines.length(),18);
+        if(lines.length()>1)button("Next material line","account-next-line",()->{itemIndex=(itemIndex+1)%lines.length();render();});
+        if(lines.length()<20)button("Add another material","account-add-line",()->{try{JSONObject next=new JSONObject().put("id",UUID.randomUUID().toString()).put("broadCode",JSONObject.NULL).put("detailedCode",JSONObject.NULL).put("description","").put("condition","unknown").put("unit","kg").put("quantity","").put("reviewState","needs_review");lines.put(next);store.save(account(),draft);itemIndex=lines.length()-1;render();}catch(Exception e){showError(e);}});
+        JSONObject item=lines.getJSONObject(itemIndex);
         String[] categories=new String[Catalog.NAMES.length+1];categories[0]="Choose a category";System.arraycopy(Catalog.NAMES,0,categories,1,Catalog.NAMES.length);
         int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(item.optString("broadCode")))selected=i+1;
         choices("Waste category",categories,selected,pos->{saveField(item,"broadCode",pos==0?JSONObject.NULL:Catalog.code(pos-1));saveField(item,"reviewState",pos==0?"needs_review":"confirmed");});
         choices("Unit",new String[]{"kg","piece"},item.optString("unit").equals("piece")?1:0,pos->saveField(item,"unit",pos==0?"kg":"piece"));
         field("Quantity",item.isNull("quantity")?"":item.optString("quantity"),"account-lot-quantity",InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12,v->saveField(item,"quantity",v));
         field("Description",item.optString("description"),"account-lot-description",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,1000,v->saveField(item,"description",v));
+        String[] conditions={"unknown","unsorted","sorted","damaged"};choices("Condition",conditions,Math.max(0,Arrays.asList(conditions).indexOf(item.optString("condition"))),pos->saveField(item,"condition",conditions[pos]));
         field("Notes",draft.optString("notes"),"account-lot-notes",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE,3000,v->saveField(draft,"notes",v));
         button("Take photo","account-take-photo",()->{
             try {cameraId=UUID.randomUUID().toString();cameraAccount=account();cameraDraft=draft.getString("id");
@@ -167,16 +179,19 @@ public class AccountActivity extends AppCompatActivity {
         });
         button("Upload photo","account-choose-photo",()->gallery.launch(new String[]{"image/*"}));
         JSONArray photos=draft.getJSONArray("fileIds");label(photos.length()+" photo(s)",14);
+        if(photos.length()>0)button("Identify a photo with Gemini","account-identify",()->market.identify(draft,null));
         for(int i=0;i<photos.length();i++){
             String photo=photos.getString(i);File file=store.photo(account(),photo);
             if(file.exists()){
                 BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=4;Bitmap bitmap=BitmapFactory.decodeFile(file.getPath(),options);
                 if(bitmap!=null){ImageView preview=new ImageView(this);preview.setImageBitmap(bitmap);preview.setContentDescription("Lot photo");preview.setScaleType(ImageView.ScaleType.CENTER_INSIDE);page.addView(preview,new LinearLayout.LayoutParams(-1,dp(150)));}
             }else label("Photo saved online",14);
+            button("Remove this photo from lot","account-remove-photo-"+i,()->{try{JSONArray keep=new JSONArray();for(int j=0;j<photos.length();j++)if(!photos.optString(j).equals(photo))keep.put(photos.optString(j));draft.put("fileIds",keep);store.save(account(),draft);render();}catch(Exception e){showError(e);}});
         }
         JSONObject saved=store.draft(account(),draft.getString("id"));
         if(saved.optString("syncState").equals("conflict"))button("Review server changes","account-review-conflict",this::reviewConflict);
         else button("Save online","account-save-online",this::syncAll);
+        button("Find recycler requirements for this line","account-find-matches",market::findMatches);
         button("Back to my lots","account-back",()->{draft=null;screen="home";render();});
     }
     void processPhoto(Uri uri,String accountId,String draftId){

@@ -110,7 +110,7 @@ export async function lotRoute(request, env, user, lotId) {
     SELECT ?,?,?,?,? WHERE ${guard}`).bind(user.id,input.commandId,payloadHash,JSON.stringify(result),time,...guardArgs));
   let committed;
   try { committed = await env.DB.batch(writes); }
-  catch (error) { const retry = await replay(); if (retry) return retry; throw error; }
+  catch (error) { const retry = await replay(); if (retry) return retry; if(error.message?.includes('MARKET_CONFLICT:'))fail('This lot has reserved stock. Cancel the uncollected order or create a separate lot before editing.',409); throw error; }
   if (committed[0].meta.changes !== 1) { const retry = await replay(); if (retry) return retry; fail('This draft changed on another device. Refresh before saving.',409); }
   return json({...result, replayed:false}, existing ? 200 : 201);
 }

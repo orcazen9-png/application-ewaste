@@ -13,14 +13,33 @@ import java.util.UUID;
 /** Every local query and file path is scoped to the server-issued account id. */
 public final class AccountStore extends SQLiteOpenHelper {
     private final Context context;
-    public AccountStore(Context context){super(context.getApplicationContext(),"personal-accounts.sqlite",null,1);this.context=context.getApplicationContext();}
+    public AccountStore(Context context){super(context.getApplicationContext(),"personal-accounts.sqlite",null,2);this.context=context.getApplicationContext();}
     @Override public void onConfigure(SQLiteDatabase db){db.setForeignKeyConstraintsEnabled(true);}
     @Override public void onCreate(SQLiteDatabase db){
         db.execSQL("CREATE TABLE drafts(account_id TEXT NOT NULL,id TEXT NOT NULL,payload TEXT NOT NULL,local_revision INTEGER NOT NULL,server_version INTEGER NOT NULL DEFAULT 0,state TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(account_id,id))");
         db.execSQL("CREATE TABLE outbox(account_id TEXT NOT NULL,command_id TEXT NOT NULL,lot_id TEXT NOT NULL,payload TEXT NOT NULL,local_revision INTEGER NOT NULL,PRIMARY KEY(account_id,command_id),UNIQUE(account_id,lot_id),FOREIGN KEY(account_id,lot_id) REFERENCES drafts(account_id,id))");
         db.execSQL("CREATE TABLE uploaded_files(account_id TEXT NOT NULL,file_id TEXT NOT NULL,PRIMARY KEY(account_id,file_id))");
+        marketTables(db);
     }
-    @Override public void onUpgrade(SQLiteDatabase db,int oldVersion,int newVersion){throw new IllegalStateException("A safe draft migration is required.");}
+    private void marketTables(SQLiteDatabase db){
+        db.execSQL("CREATE TABLE market_cache(account_id TEXT NOT NULL,cache_key TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(account_id,cache_key))");
+        db.execSQL("CREATE TABLE market_pending(account_id TEXT PRIMARY KEY NOT NULL,payload TEXT NOT NULL)");
+    }
+    @Override public void onUpgrade(SQLiteDatabase db,int oldVersion,int newVersion){if(oldVersion<2)marketTables(db);}
+    public synchronized JSONObject cached(String account,String key)throws Exception{
+        validId(account);try(Cursor c=getReadableDatabase().rawQuery("SELECT payload FROM market_cache WHERE account_id=? AND cache_key=?",new String[]{account,key})){return c.moveToFirst()?new JSONObject(c.getString(0)):null;}
+    }
+    public synchronized void cache(String account,String key,JSONObject value){validId(account);getWritableDatabase().execSQL("INSERT OR REPLACE INTO market_cache VALUES(?,?,?)",new Object[]{account,key,value.toString()});}
+    public synchronized JSONObject pendingMarket(String account)throws Exception{
+        validId(account);try(Cursor c=getReadableDatabase().rawQuery("SELECT payload FROM market_pending WHERE account_id=?",new String[]{account})){return c.moveToFirst()?new JSONObject(c.getString(0)):null;}
+    }
+    public synchronized JSONObject queueMarket(String account,String method,String path,JSONObject input,String destination)throws Exception{
+        validId(account);if(pendingMarket(account)!=null)throw new IllegalStateException("Retry the pending action before submitting another change.");
+        JSONObject payload=new JSONObject(input.toString()).put("commandId",UUID.randomUUID().toString());
+        JSONObject operation=new JSONObject().put("method",method).put("path",path).put("input",payload).put("destination",destination);
+        getWritableDatabase().execSQL("INSERT INTO market_pending VALUES(?,?)",new Object[]{account,operation.toString()});return operation;
+    }
+    public synchronized void finishMarket(String account){validId(account);getWritableDatabase().delete("market_pending","account_id=?",new String[]{account});}
     public static String validId(String value){if(value==null||!value.matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"))throw new IllegalArgumentException("Invalid account or draft reference");return value;}
     public synchronized JSONObject draft(String account,String id)throws Exception {
         validId(account);validId(id);

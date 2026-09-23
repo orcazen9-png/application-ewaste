@@ -2,6 +2,8 @@ import {CATALOG} from '../../dist/waste-catalog.js';
 import {authenticate, authRoute, profileRoute} from './auth.js';
 import {fileRoute} from './files.js';
 import {lotRoute} from './lots.js';
+import {marketplaceRoute} from './marketplace.js';
+import {assessmentRoute} from './assessments.js';
 import {fail, json} from './common.js';
 
 export async function accountApi(request, env) {
@@ -14,6 +16,8 @@ export async function accountApi(request, env) {
   const auth = await authRoute(request, env, path); if (auth) return auth;
   const user = await authenticate(request, env);
   const profile = await profileRoute(request, env, user, path); if (profile) return profile;
+  const assessment = await assessmentRoute(request, env, user, path); if (assessment) return assessment;
+  const market = await marketplaceRoute(request, env, user, path); if (market) return market;
   if (path === '/api/v1/catalogue' && request.method === 'GET') return json(CATALOG);
   const file = path.match(/^\/api\/v1\/files\/([^/]+)$/);
   if (file) return fileRoute(request, env, user, file[1]);
