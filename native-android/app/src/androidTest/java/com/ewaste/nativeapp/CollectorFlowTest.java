@@ -14,6 +14,7 @@ import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.matcher.ViewMatchers.*;
 import static androidx.test.espresso.action.ViewActions.*;
 import static org.hamcrest.Matchers.is;
+import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 @RunWith(AndroidJUnit4.class)
 public class CollectorFlowTest {
     static final String CODE="000000000000000000000000000000000000000000000000";
@@ -28,7 +29,7 @@ public class CollectorFlowTest {
                 assertEquals("market_order",type);JSONObject input=body.getJSONObject("command").getJSONObject("input");assertEquals("2",input.getString("quantity"));assertTrue(input.getBoolean("materialConfirmed"));assertEquals("piece",input.getString("unit"));state.set("ordered");return new JSONObject().put("result",f.getJSONObject("order"));
             }};a.screen="home";a.render();assertNotNull(a.root.findViewWithTag("nav-create"));a.root.findViewWithTag("requirement-requirement-phones").performClick();a.root.findViewWithTag("contact-recycler").performClick();}catch(Exception e){throw new AssertionError(e);}});
             awaitIdle(scenario);scenario.onActivity(a->{assertEquals("contacts",a.screen);assertEquals(1,a.market.array("contacts").length());a.root.findViewWithTag("resume-contact").performClick();a.root.findViewWithTag("create-order").performClick();});
-            onView(withTagValue(is("order-quantity"))).perform(typeText("2"),closeSoftKeyboard());onView(withTagValue(is("material-confirmation"))).perform(click());onView(withText("Request order")).perform(click());
+            onView(withTagValue(is("order-quantity"))).inRoot(isDialog()).perform(typeText("2"),closeSoftKeyboard());onView(withTagValue(is("material-confirmation"))).inRoot(isDialog()).perform(click());onView(withText("Request order")).inRoot(isDialog()).perform(click());
             awaitIdle(scenario);scenario.onActivity(a->{assertEquals("order",a.screen);assertEquals(100000,a.market.find("orders",a.market.orderId).optInt("estimatedTotalPaise"));assertNull(a.store.pendingMarket());a.root.findViewWithTag("nav-profile").performClick();assertNotNull(a.root.findViewWithTag("edit-profile"));a.root.findViewWithTag("profile-safety").performClick();assertNotNull(a.root.findViewWithTag("safety-source"));a.market.go("order");});
             scenario.recreate();scenario.onActivity(a->{assertEquals("order",a.screen);assertEquals(1,a.market.array("orders").length());});
         }
