@@ -35,6 +35,7 @@ export function decide(choice,suggestion,now=new Date().toISOString()){
 }
 
 const rows={
+  validationPhotoCategories:['Wait for identification, then confirm or correct the photo categories. Replace the photo if it needs a retake.','पहचान पूरी होने के बाद फोटो की श्रेणियों की पुष्टि करें या सुधारें। जरूरत हो तो नई फोटो जोड़ें।','ओळख पूर्ण झाल्यावर फोटोच्या श्रेणींची पुष्टी करा किंवा दुरुस्त करा. गरज असल्यास नवीन फोटो जोडा.'],
   equipment:['Equipment category (ITEW)','उपकरण श्रेणी (ITEW)','उपकरण श्रेणी (ITEW)'],
   equipmentHelp:['After you add a photo, an experimental model suggests an IT or telecom equipment category. Confirm it or choose the correct one. It does not change the price estimate.','फोटो जोड़ने के बाद एक प्रायोगिक मॉडल आईटी या टेलीकॉम उपकरण की श्रेणी सुझाता है। इसकी पुष्टि करें या सही श्रेणी चुनें। इससे मूल्य अनुमान नहीं बदलता।','फोटो जोडल्यानंतर एक प्रायोगिक मॉडेल आयटी किंवा टेलिकॉम उपकरणाची श्रेणी सुचवते. तिची पुष्टी करा किंवा योग्य श्रेणी निवडा. यामुळे किंमत अंदाज बदलत नाही.'],
   equipmentChoose:['Choose equipment category','उपकरण श्रेणी चुनें','उपकरण श्रेणी निवडा'],

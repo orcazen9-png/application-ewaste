@@ -1,4 +1,5 @@
 import {normalizeEquipment} from './equipment.js';
+import {normalizeLotClassification} from './lot-classification.js';
 export const MATERIALS = [
   {id:'cables', name:'Copper cables', subcategory:'Mixed insulated cables', base:24500, icon:'cables'},
   {id:'pcb', name:'Circuit boards', subcategory:'Mixed PCBs', base:38000, icon:'pcb'},
@@ -63,10 +64,15 @@ export function saveLot(state,input,{publish=false,now=new Date().toISOString()}
   if(publish){if(!input.materialId)throw new Error('Choose a material.');if(!parseWeight(input.weight))throw new Error('Enter a positive weight, up to 50,000 kg, with at most 3 decimal places.');if(!input.photoId)throw new Error('Add a material photo before listing.');}
   // Equipment is a confirmed ITEW label only; it is not part of the valuation or a commercial change.
   const equipment='equipmentCode' in input||'equipmentDecision' in input?normalizeEquipment(input,now):{equipmentCode:existing?.equipmentCode||'',equipmentDecision:existing?.equipmentDecision||null};
+  const classification=normalizeLotClassification({photoId:input.photoId,
+    wasteAssessment:'wasteAssessment' in input?input.wasteAssessment:input.photoId===existing?.photoId?existing?.wasteAssessment:null,
+    wasteDecision:'wasteDecision' in input?input.wasteDecision:input.photoId===existing?.photoId?existing?.wasteDecision:null},now);
+  if(publish&&classification.wasteAssessment&&!classification.wasteDecision)throw new Error('Confirm or correct the photo categories before listing.');
+  if(publish&&classification.wasteDecision?.outcome==='retake_photo')throw new Error('Replace the photo before listing this lot.');
   const commercialChange=existing&&(existing.materialId!==input.materialId||existing.weight!==input.weight||existing.locality!==input.locality);
   const firstListing=publish&&existing?.status!=='listed';
   const estimate=existing&&!commercialChange&&!firstListing?existing.estimate:valuation(state,input.materialId,input.locality,input.weight);
-  const lot={...existing,id:input.id||newId('lot'),collectorId:state.collector.id,materialId:input.materialId||'',locality:input.locality,weight:String(input.weight??''),estimatedGrams:parseWeight(input.weight),description:String(input.description||'').slice(0,500),condition:input.condition||'unsorted',photoId:input.photoId||null,...equipment,estimate,originalEstimate:existing?.originalEstimate||(publish?estimate:null),valuationHistory:[...(existing?.valuationHistory||[]),...(estimate&&(!existing||commercialChange||firstListing)?[{...estimate,capturedAt:now}]:[])],status:publish?'listed':existing?.status||'draft',storage:'device',createdAt:existing?.createdAt||now,updatedAt:now,version:(existing?.version||0)+1,isSample:false};
+  const lot={...existing,id:input.id||newId('lot'),collectorId:state.collector.id,materialId:input.materialId||'',locality:input.locality,weight:String(input.weight??''),estimatedGrams:parseWeight(input.weight),description:String(input.description||'').slice(0,500),condition:input.condition||'unsorted',photoId:input.photoId||null,...equipment,...classification,estimate,originalEstimate:existing?.originalEstimate||(publish?estimate:null),valuationHistory:[...(existing?.valuationHistory||[]),...(estimate&&(!existing||commercialChange||firstListing)?[{...estimate,capturedAt:now}]:[])],status:publish?'listed':existing?.status||'draft',storage:'device',createdAt:existing?.createdAt||now,updatedAt:now,version:(existing?.version||0)+1,isSample:false};
   if(commercialChange)for(const offer of state.offers.filter(o=>o.lotId===lot.id&&o.status==='pending'))offer.status='invalidated';
   state.lots=state.lots.filter(l=>l.id!==lot.id);state.lots.unshift(lot);
   state.events.push({id:newId('event'),lotId:lot.id,type:publish&&existing?.status!=='listed'?'listed':existing?'updated':'created',at:now,actor:state.collector.id,simulated:false});

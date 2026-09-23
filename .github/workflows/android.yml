@@ -20,6 +20,12 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v4
+      # Reuse the same demo signing certificate for subsequent CI updates.
+      # This cannot recover the key from APKs built by earlier runners.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-demo-signing-v1
       - run: npm ci
       - run: npm run check
       - run: npm test
@@ -28,9 +34,25 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: bash ./gradlew assembleDebug --no-daemon
+      - name: Verify and name the demo APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          mkdir -p apk-download
+          "$tools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
+          "$tools/aapt" dump badging "$apk" >> apk-download/verification.txt
+          grep "package: name='com.ewaste.marketplace.demo' versionCode='4' versionName='0.4.0'" apk-download/verification.txt
+          if grep -q 'application-testOnly' apk-download/verification.txt; then
+            echo 'APK must support ordinary installation, not only adb -t.'
+            exit 1
+          fi
+          cp "$apk" apk-download/ewaste-create-lot-v0.4.0.apk
+          sha256sum apk-download/ewaste-create-lot-v0.4.0.apk >> apk-download/verification.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: ewaste-android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: ewaste-create-lot-v0.4.0
+          path: apk-download/
           retention-days: 14
           if-no-files-found: error

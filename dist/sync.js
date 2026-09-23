@@ -19,7 +19,7 @@ export async function connectWorkspace(endpoint,code,create=false){
   await changeState(s=>{s.sync=config;s.outbox=s.lots.filter(l=>l.status==='listed').map(l=>({operationId:newId('operation'),command:{type:'list',input:lotInput(l,s)},lotId:l.id}));for(const l of s.lots.filter(l=>l.status==='listed'))l.storage='waiting';});
   await synchronize();return config;
 }
-export const lotInput=(lot,state)=>({...Object.fromEntries(['id','materialId','locality','weight','description','condition','photoId','equipmentCode','equipmentDecision'].map(k=>[k,lot[k]])),priorEstimate:lot.originalEstimate||undefined,priorCreatedAt:lot.createdAt,priorEvents:state?.events.filter(e=>e.lotId===lot.id)});
+export const lotInput=(lot,state)=>({...Object.fromEntries(['id','materialId','locality','weight','description','condition','photoId','equipmentCode','equipmentDecision','wasteAssessment','wasteDecision'].map(k=>[k,lot[k]])),priorEstimate:lot.originalEstimate||undefined,priorCreatedAt:lot.createdAt,priorEvents:state?.events.filter(e=>e.lotId===lot.id)});
 export function queueListing(state,lot,previous){
   if(!state.sync?.code)return;
   const input=lotInput(lot,state);if(previous?.storage==='synced')input.expectedVersion=previous.version;

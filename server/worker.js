@@ -2,6 +2,7 @@ import {createState,evolvePrices} from '../dist/domain.js';
 import {transact} from '../dist/transactions.js';
 import {identification} from './identification.js';
 import {d1Bucket} from './d1-photos.js';
+import {lotAssessment} from './lot-assessments.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -25,6 +26,7 @@ export async function api(request,env){
   if(!keyPattern.test(code))fail('Enter a valid workspace pairing code.',401);
   const space=await env.DB.prepare('SELECT * FROM spaces WHERE access_hash=?').bind(await digest(code)).first();
   if(!space)fail('Workspace code was not recognized.',401);
+  if(path==='/api/lot-assessments')return json(await lotAssessment(request,env,space));
   if(path.startsWith('/api/identification'))return json(await identification(request,env,space));
   if(path==='/api/state'&&request.method==='GET')return json({state:JSON.parse(space.state_json),version:space.version});
   const photoMatch=path.match(/^\/api\/photos\/([^/]+)$/);
@@ -48,6 +50,12 @@ export async function api(request,env){
       if(receipt){if(receipt.payload_hash!==hash)fail('This retry does not match the original action.',409);return json({result:JSON.parse(receipt.result_json),replayed:true});}
       const current=await env.DB.prepare('SELECT * FROM spaces WHERE id=?').bind(space.id).first();
       const state=JSON.parse(current.state_json);
+      if(command.type==='list'&&command.input?.wasteAssessment){
+        const assessment=state.lotAssessments?.find(a=>a.id===command.input.wasteAssessment.id&&a.photoId===command.input.photoId);
+        if(!assessment)fail('Run the photo assessment in this workspace before saving it.',400);
+        // Category corrections are allowed; provider evidence always comes from the saved assessment.
+        command.input.wasteAssessment=assessment;
+      }
       const existing=state.lots.find(l=>l.id===(command.type==='list'?command.input?.id:command.lotId));
       if(existing&&(command.type==='list'?command.input?.expectedVersion:command.expectedVersion)===undefined)fail('Refresh the transaction before changing it.',409);
       if(['list','handover','sample'].includes(command.type)){
