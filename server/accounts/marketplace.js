@@ -44,7 +44,7 @@ async function facility(env,user){
 }
 function cursor(request){const value=new URL(request.url).searchParams.get('after')||'';if(value)requireId(value);return value;}
 const requirementSelect=`SELECT r.*,u.display_name AS recycler_name,f.name AS facility_name,f.verification_status,
-  coalesce((SELECT sum(quantity_base) FROM reservations z WHERE z.requirement_id=r.id AND ${allocated}),0) AS allocated_base
+  coalesce((SELECT sum(coalesce(demand_base,quantity_base)) FROM reservations z WHERE z.requirement_id=r.id AND ${allocated}),0) AS allocated_base
   FROM requirements r JOIN users u ON u.id=r.owner_id JOIN facilities f ON f.id=r.facility_id`;
 function projectRequirement(r){return {id:r.id,facilityId:r.facility_id,recyclerName:r.recycler_name||r.facility_name||'Recycler',verificationStatus:r.verification_status,
   broadCode:r.broad_code,detailedCode:r.detailed_code,title:r.title,specification:r.specification,unit:r.unit,rate:rupees(r.rate_paise),ratePaise:r.rate_paise,
@@ -178,7 +178,8 @@ async function ordersRoute(request,env,user,record,action){
     if(record){const o=await permittedOrder(env,user,record),r=await permittedRequest(env,user,o.request_id);
       const terms=await rows(env.DB.prepare('SELECT version,proposed_by AS proposedBy,amount_paise AS amountPaise,reason,status,acknowledged_by AS acknowledgedBy,created_at AS createdAt FROM order_terms WHERE order_id=? ORDER BY version DESC LIMIT 50').bind(record));
       const events=await rows(env.DB.prepare('SELECT id,actor_id AS actorId,kind,message,created_at AS createdAt FROM market_events WHERE request_id=? ORDER BY created_at DESC,id DESC LIMIT 100').bind(o.request_id));
-      return json({order:projectOrder(o),request:projectRequest(r),terms,events});}
+      const logistics=await env.DB.prepare('SELECT state,pickup_json FROM logistics_jobs WHERE order_id=?').bind(record).first();
+      return json({order:{...projectOrder(o),logistics:logistics?logistics.state+'; recycler pays separately':projectOrder(o).logistics,canCancel:o.state==='accepted'&&!logistics?.pickup_json},request:projectRequest(r),terms,events});}
     const page=await rows(env.DB.prepare('SELECT * FROM orders WHERE (collector_id=? OR recycler_id=?) AND id>? ORDER BY id LIMIT 51').bind(user.id,user.id,cursor(request)));
     return json({orders:page.slice(0,50).map(projectOrder),nextCursor:page.length>50?page[49].id:null});
   }

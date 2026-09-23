@@ -13,8 +13,9 @@ import java.util.*;
 /** Native marketplace presentation, separate from the account and draft editor. */
 final class MarketplaceScreens {
     final AccountActivity a;
+    final LogisticsScreens logistics;
     JSONObject state=new JSONObject();
-    MarketplaceScreens(AccountActivity activity){a=activity;}
+    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);}
     void put(JSONObject o,String k,Object v){Catalog.put(o,k,v);}
     String view(){return state.optString("view","");}
     JSONObject data(){JSONObject d=state.optJSONObject("data");return d==null?new JSONObject():d;}
@@ -37,11 +38,17 @@ final class MarketplaceScreens {
         String owner=a.account(),token=a.token();
         a.task(()->{
             JSONObject pending=a.store.pendingMarket(owner);if(pending==null)throw new IllegalStateException("No pending action.");
-            try {JSONObject result=a.api.request(pending.getString("method"),pending.getString("path"),token,pending.getJSONObject("input"));a.store.finishMarket(owner);return new JSONObject().put("result",result).put("destination",pending.getString("destination"));}
+            try {
+                if(pending.getString("path").contains("/logistics/")){
+                    JSONArray photos=pending.getJSONObject("input").optJSONArray("fileIds");
+                    if(photos!=null)for(int i=0;i<photos.length();i++){String photo=photos.getString(i);if(!a.store.uploaded(owner,photo)){a.api.upload(a.store.photo(owner,photo),photo,token);a.store.markUploaded(owner,photo);}}
+                }
+                JSONObject result=a.api.request(pending.getString("method"),pending.getString("path"),token,pending.getJSONObject("input"));a.store.finishMarket(owner);return new JSONObject().put("result",result).put("destination",pending.getString("destination"));}
             catch(AccountApi.Failure error){if(error.status>=400&&error.status<500&&error.status!=401&&error.status!=408&&error.status!=429)a.store.finishMarket(owner);throw error;}
         },result->{String destination=result.optString("destination");JSONObject value=result.optJSONObject("result");
             if(destination.equals("portfolio"))load("portfolio","/requirements");
             else if(destination.equals("order"))load("order","/orders/"+value.optString("id"));
+            else if(destination.equals("logistics"))logistics.open(value.optString("id"));
             else load("request","/requests/"+value.optString("id"));
         });
     }
@@ -62,6 +69,8 @@ final class MarketplaceScreens {
             case "request":request(d);break;
             case "orders":orders(d);break;
             case "order":order(d);break;
+            case "logistics":logistics.render(d);break;
+            case "evidence":logistics.evidence(d);break;
         }
         if(!state.optString("path").isEmpty()){
             if(d.has("fetchedAt"))a.label("Last checked: "+d.optString("fetchedAt").replace('T',' ').replace("Z"," UTC"),12);
@@ -194,6 +203,7 @@ final class MarketplaceScreens {
         a.label("Shared order",23);JSONObject o=d.optJSONObject("order");if(o==null){a.label("Connect to load this order.",16);return;}
         a.label("Order "+o.getString("id").substring(0,8)+" · "+o.getString("state"),18);a.label("Acknowledged material amount: ₹"+o.getString("materialAmount"),20);
         a.label(o.optString("logistics")+"\nPayment: "+o.optString("paymentState")+"\nFinal invoice is still required.",15);
+        a.button("Pickup & receipt","market-logistics",()->logistics.open(o.optString("id")));
         if(d.optJSONObject("request")!=null)a.button("Original request and photos","market-original-request",()->load("request","/requests/"+o.optString("requestId")));
         JSONArray terms=d.optJSONArray("terms");if(terms!=null)for(int i=0;i<terms.length();i++){JSONObject term=terms.getJSONObject(i);a.label("Price revision "+term.getInt("version")+" · ₹"+new BigDecimal(term.getLong("amountPaise")).movePointLeft(2)+" · "+term.getString("status"),16);a.label(term.getString("reason"),14);
             if(o.optString("state").equals("accepted")&&term.getString("status").equals("proposed")&&!a.account().equals(term.getString("proposedBy")))a.button("Acknowledge this price","market-acknowledge",()->{JSONObject input=input(o.optInt("version"));put(input,"termsVersion",term.optInt("version"));change("/orders/"+o.optString("id")+"/acknowledge-terms","POST",input,"order");});
@@ -203,7 +213,7 @@ final class MarketplaceScreens {
                 LinearLayout layout=new LinearLayout(a);layout.setOrientation(LinearLayout.VERTICAL);EditText amount=new EditText(a),reason=new EditText(a);amount.setHint("Material amount ₹");amount.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);reason.setHint("Reason for revision");layout.addView(amount);layout.addView(reason);
                 new AlertDialog.Builder(a).setTitle("Propose price revision").setView(layout).setPositiveButton("Propose",(dialog,which)->{JSONObject input=input(o.optInt("version"));put(input,"amount",amount.getText().toString());put(input,"message",reason.getText().toString());change("/orders/"+o.optString("id")+"/propose-terms","POST",input,"order");}).setNegativeButton("Back",null).show();
             });
-            a.button("Cancel before collection","market-cancel",()->message("Cancel and release reserved stock","/orders/"+o.optString("id")+"/cancel",o.optInt("version"),"order"));
+            if(o.optBoolean("canCancel",true))a.button("Cancel before collection","market-cancel",()->message("Cancel and release reserved stock","/orders/"+o.optString("id")+"/cancel",o.optInt("version"),"order"));
         }events(d.optJSONArray("events"));
     }
     void events(JSONArray events)throws Exception{a.label("Recent activity",20);if(events==null)return;for(int i=0;i<events.length();i++){JSONObject e=events.getJSONObject(i);String message=e.optString("message");if(e.optString("kind").equals("category.confirmed")){JSONObject category=new JSONObject(message);message="Detailed category confirmed: "+category.getString("code")+" — "+category.getString("name");}a.label(e.optString("kind").replace('.',' ')+" · "+e.optString("createdAt")+"\n"+message,14);}}

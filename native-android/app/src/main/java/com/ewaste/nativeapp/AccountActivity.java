@@ -40,7 +40,7 @@ public class AccountActivity extends AppCompatActivity {
     final ExecutorService tasks=Executors.newSingleThreadExecutor();
     private static final String TAXONOMY="106-draft-v1";
     private static final int GREEN=0xff125b46,INK=0xff1e3028,BG=0xfff4f7f4;
-    final ActivityResultLauncher<String[]> gallery=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(uri!=null)processPhoto(uri,account(),draft==null?"":draft.optString("id"));});
+    final ActivityResultLauncher<String[]> gallery=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(uri!=null)processPhoto(uri,account(),screen.equals("market")&&market.view().equals("evidence")?market.logistics.context():draft==null?"":draft.optString("id"));});
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
 
     @Override public void onCreate(Bundle saved){
@@ -194,6 +194,9 @@ public class AccountActivity extends AppCompatActivity {
         button("Find recycler requirements for this line","account-find-matches",market::findMatches);
         button("Back to my lots","account-back",()->{draft=null;screen="home";render();});
     }
+    void takeEvidencePhoto(String context){
+        try{cameraId=UUID.randomUUID().toString();cameraAccount=account();cameraDraft=context;camera.launch(FileProvider.getUriForFile(this,getPackageName()+".files",store.photo(cameraAccount,cameraId)));}catch(Exception e){showError(e);}
+    }
     void processPhoto(Uri uri,String accountId,String draftId){
         if(session==null||!account().equals(accountId)||draftId.isEmpty())return;
         task(()->{
@@ -220,8 +223,10 @@ public class AccountActivity extends AppCompatActivity {
             String fileId=UUID.randomUUID().toString();File output=store.photo(accountId,fileId);
             try(FileOutputStream out=new FileOutputStream(output)){if(!bitmap.compress(Bitmap.CompressFormat.JPEG,85,out))throw new IOException("Could not save photo.");}finally{bitmap.recycle();}
             if(output.length()>2*1024*1024)throw new IOException("Choose a smaller photo.");
-            store.attachPhoto(accountId,draftId,fileId);return draftId;
-        },savedId->{try{draft=store.draft(accountId,savedId);screen="edit";render();}catch(Exception e){showError(e);}});
+            if(draftId.startsWith("evidence:")){
+                JSONObject evidence=store.cached(accountId,draftId);if(evidence==null)throw new IOException("Evidence draft was not found.");JSONArray photos=evidence.getJSONArray("fileIds");if(photos.length()>=5)throw new IOException("Use at most five evidence photos.");photos.put(fileId);store.cache(accountId,draftId,evidence);
+            }else store.attachPhoto(accountId,draftId,fileId);return draftId;
+        },savedId->{try{if(savedId.startsWith("evidence:")){market.show("evidence",store.cached(accountId,savedId));}else{draft=store.draft(accountId,savedId);screen="edit";render();}}catch(Exception e){showError(e);}});
     }
     void profile()throws Exception {
         JSONObject user=session.getJSONObject("user");label("Profile",23);label(user.getString("mobile")+" · "+user.getString("role"),15);

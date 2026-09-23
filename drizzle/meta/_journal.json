@@ -29,6 +29,13 @@
       "when": 1790208000001,
       "tag": "0003_marketplace_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790208000002,
+      "tag": "0004_logistics_receipt",
+      "breakpoints": true
     }
   ]
 }

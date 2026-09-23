@@ -5,6 +5,7 @@ import {d1Bucket} from './d1-photos.js';
 import {lotAssessment} from './lot-assessments.js';
 import {collectorProjection,marketCommand} from './collector-market.js';
 import {accountApi} from './accounts/api.js';
+import {operationsApi} from './accounts/logistics.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -13,6 +14,7 @@ const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status
 async function body(request){const raw=await request.text();if(raw.length>50000)fail('Request is too large.',413);try{return JSON.parse(raw);}catch{fail('Invalid request.');}}
 export async function api(request,env){
   const url=new URL(request.url),path=url.pathname;
+  if(path.startsWith('/api/ops/'))return operationsApi(request,env);
   if(path.startsWith('/api/v1/'))return accountApi(request,env);
   if(path==='/api/health')return json({ok:true});
   if(env.ACCOUNTS_ENABLED==='true')fail('This server uses personal accounts. Update the app and sign in.',410);
@@ -89,5 +91,9 @@ export default {async fetch(request,env){
   let response;
   try{response=url.pathname.startsWith('/api/')?await api(request,env):await env.APP_ASSETS(request);}catch(error){response=json({error:error.status?error.message:'The server could not complete this request.'},error.status||500);if(!error.status)console.error(error.message);}
   const headers=new Headers(response.headers);for(const [key,value]of Object.entries(cors))headers.set(key,value);
+  if(url.pathname==='/operations.html'){
+    headers.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    headers.set('Referrer-Policy','same-origin');headers.set('Cache-Control','no-store');
+  }
   return new Response(response.body,{status:response.status,headers});
 }};

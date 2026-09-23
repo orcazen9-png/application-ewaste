@@ -51,7 +51,7 @@ export async function fileRoute(request, env, user, fileId) {
       'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'inline'}});
   }
   if (request.method !== 'PUT') fail('Method not supported.', 405);
-  requireRole(user, 'collector');
+  if (!['collector','recycler'].includes(user.role)) fail('Photo uploads require a personal account.',403);
   const data = await bytes(request, 2*1024*1024), info = imageInfo(data), digest = await hash(data);
   if (request.headers.get('Content-Type')?.split(';')[0] !== info.type) fail('The photo type does not match its contents.', 415);
   if (existing && existing.sha256 !== digest) fail('This photo reference already belongs to a different image.', 409);

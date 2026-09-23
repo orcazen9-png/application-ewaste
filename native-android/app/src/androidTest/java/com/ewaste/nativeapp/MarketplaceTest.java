@@ -67,7 +67,7 @@ public class MarketplaceTest {
             assertEquals(1,api.submissions);scenario.recreate();idle(scenario);assertEquals(1,api.submissions);
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
     }
-    static final class MarketApi extends AccountApi {
+    static class MarketApi extends AccountApi {
         final JSONObject user,requirement,request,order,lot;int requirementWrites=0,accepts=0,submissions=0;
         MarketApi()throws Exception{
             String recycler=UUID.randomUUID().toString(),collector=UUID.randomUUID().toString(),rid=UUID.randomUUID().toString(),sid=UUID.randomUUID().toString();

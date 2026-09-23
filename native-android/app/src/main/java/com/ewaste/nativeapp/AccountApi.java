@@ -19,6 +19,7 @@ public class AccountApi {
         send("PUT","/files/"+fileId,token,read(new FileInputStream(file),2*1024*1024),"image/jpeg");
     }
     public byte[] photo(String fileId,String token)throws Exception {return send("GET","/files/"+fileId,token,null,"image/jpeg");}
+    public byte[] logisticsPhoto(String orderId,String fileId,String token)throws Exception {AccountStore.validId(orderId);AccountStore.validId(fileId);return send("GET","/orders/"+orderId+"/logistics/photos/"+fileId,token,null,"image/jpeg");}
     public byte[] sharedPhoto(String requestId,String fileId,String token)throws Exception {AccountStore.validId(requestId);AccountStore.validId(fileId);return send("GET","/requests/"+requestId+"/photos/"+fileId,token,null,"image/jpeg");}
     private byte[] send(String method,String path,String token,byte[] data,String type)throws Exception {
         if(!path.startsWith("/")||path.contains("..")||path.contains(":"))throw new IOException("Invalid request path.");
