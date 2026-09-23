@@ -8,7 +8,7 @@ export function d1Bucket(DB){
     async head(key){return await DB.prepare('SELECT key FROM photos WHERE key=?').bind(key).first();},
     async get(key){
       const row=await DB.prepare('SELECT content_type,data_base64 FROM photos WHERE key=?').bind(key).first();if(!row)return null;
-      return {body:fromBase64(row.data_base64),httpMetadata:{contentType:row.content_type}};
+      return {body:fromBase64(row.data_base64),base64:row.data_base64,httpMetadata:{contentType:row.content_type}};
     },
     async put(key,bytes,options){
       if(bytes.length>LIMIT)fail('Photo must be below 1.4 MB.',413);

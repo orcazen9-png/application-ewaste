@@ -39,7 +39,7 @@ export async function identification(request,env,space){
     try{
       const object=await env.BUCKET.get(`${space.id}/${item.photoId}`);if(!object)fail('Photo unavailable.',404);
       const bytes=object.body instanceof Uint8Array?object.body:new Uint8Array(await new Response(object.body).arrayBuffer());
-      const result=await assessPhoto(bytes,object.httpMetadata?.contentType,input.scope,env);
+      const result=await assessPhoto(bytes,object.httpMetadata?.contentType,input.scope,env,undefined,object.base64);
       result.id='assessment-'+crypto.randomUUID();result.photoId=item.photoId;
       return await update(env,space.id,items=>{const current=items.find(i=>i.id===item.id);const old=current.assessments.find(a=>a.scope===result.scope&&a.model===result.model&&a.taxonomyVersion===result.taxonomyVersion);if(old)return old;current.assessments.push(result);return result;});
     }finally{pending.delete(key);}

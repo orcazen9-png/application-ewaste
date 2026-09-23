@@ -88,3 +88,11 @@ test('a slow Gemini reply triggers one backup request and the first answer wins'
  assert.equal(single,1,'hedging can be switched off');
  await assert.rejects(()=>assessPhoto(new Uint8Array([255,216,255]),'image/jpeg','broad',{GEMINI_API_KEY:'k',GEMINI_MODEL:'m'},async()=>new Response('{}',{status:503})),/overloaded/);
 });
+test('photo base64 already held by the photo store is sent as-is',async()=>{
+  const bodies=[];const reply={candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({status:'needs_review',items:[],description:'d',uncertainty:'u',nextPhoto:'n'})}]}}]};
+  const fetcher=async(url,init)=>{bodies.push(JSON.parse(init.body));return new Response(JSON.stringify(reply),{status:200});};
+  const env={GEMINI_API_KEY:'k',GEMINI_MODEL:'m',GEMINI_HEDGE_MS:'0'},bytes=new Uint8Array([255,216,255,1]);
+  await assessPhoto(bytes,'image/jpeg','broad',env,fetcher,'STORED');
+  await assessPhoto(bytes,'image/jpeg','broad',env,fetcher);
+  assert.deepEqual(bodies.map(b=>b.contents[0].parts[1].inline_data.data),['STORED',Buffer.from(bytes).toString('base64')]);
+});

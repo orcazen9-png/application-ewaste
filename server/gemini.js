@@ -26,12 +26,13 @@ export function validateAssessment(data,scope){
   for(const k of ['description','uncertainty','nextPhoto'])if(typeof data[k]!=='string'||data[k].length>1200)fail('AI returned invalid details.');
   return {status,modelStatus:data.status,items,description:data.description,uncertainty:data.uncertainty,nextPhoto:data.nextPhoto};
 }
-export async function assessPhoto(bytes,mime,scope,env,fetcher=fetch){
+// storedBase64: the photo already in base64 (D1 photo store), which spares re-encoding it on the Worker's CPU budget.
+export async function assessPhoto(bytes,mime,scope,env,fetcher=fetch,storedBase64=null){
   if(!['broad','detailed'].includes(scope))fail('Choose broad or detailed assessment.',400);
   if(!env.GEMINI_API_KEY||!env.GEMINI_MODEL)fail('Gemini is not configured. Set the backend API key and model.',503);
   if(!/^[a-zA-Z0-9.-]+$/.test(env.GEMINI_MODEL))fail('Invalid backend model configuration.',503);
   if(bytes.length>2*1024*1024||!['image/jpeg','image/png','image/webp'].includes(mime))fail('Use a JPG, PNG or WebP below 2 MB.',413);
-  const photoBase64=toBase64(bytes);
+  const photoBase64=storedBase64??toBase64(bytes);
   const schema={type:'object',properties:{
     status:{type:'string',enum:['identified','needs_review','mixed_lot','parts_only','out_of_scope']},
     items:{type:'array',maxItems:12,items:{type:'object',properties:{code:{type:'string',enum:choices(scope).map(c=>c.code)},evidence:{type:'string'},approximateCount:{type:['integer','null']}},required:['code','evidence','approximateCount'],additionalProperties:false}},
