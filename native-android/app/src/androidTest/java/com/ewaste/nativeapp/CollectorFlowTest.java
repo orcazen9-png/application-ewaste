@@ -26,7 +26,7 @@ public class CollectorFlowTest {
                 if(method.equals("GET"))return new JSONObject().put("state",f.getJSONObject(state.get()));String type=body.getJSONObject("command").getString("type");
                 if(type.equals("market_contact")){state.set("contacted");return new JSONObject().put("result",f.getJSONObject("contact"));}
                 assertEquals("market_order",type);JSONObject input=body.getJSONObject("command").getJSONObject("input");assertEquals("2",input.getString("quantity"));assertTrue(input.getBoolean("materialConfirmed"));assertEquals("piece",input.getString("unit"));state.set("ordered");return new JSONObject().put("result",f.getJSONObject("order"));
-            };a.screen="home";a.render();assertNotNull(a.root.findViewWithTag("nav-create"));a.root.findViewWithTag("requirement-requirement-phones").performClick();a.root.findViewWithTag("contact-recycler").performClick();}catch(Exception e){throw new AssertionError(e);}});
+            }};a.screen="home";a.render();assertNotNull(a.root.findViewWithTag("nav-create"));a.root.findViewWithTag("requirement-requirement-phones").performClick();a.root.findViewWithTag("contact-recycler").performClick();}catch(Exception e){throw new AssertionError(e);}});
             awaitIdle(scenario);scenario.onActivity(a->{assertEquals("contacts",a.screen);assertEquals(1,a.market.array("contacts").length());a.root.findViewWithTag("resume-contact").performClick();a.root.findViewWithTag("create-order").performClick();});
             onView(withTagValue(is("order-quantity"))).perform(typeText("2"),closeSoftKeyboard());onView(withTagValue(is("material-confirmation"))).perform(click());onView(withText("Request order")).perform(click());
             awaitIdle(scenario);scenario.onActivity(a->{assertEquals("order",a.screen);assertEquals(100000,a.market.find("orders",a.market.orderId).optInt("estimatedTotalPaise"));assertNull(a.store.pendingMarket());a.root.findViewWithTag("nav-profile").performClick();assertNotNull(a.root.findViewWithTag("edit-profile"));a.root.findViewWithTag("profile-safety").performClick();assertNotNull(a.root.findViewWithTag("safety-source"));a.market.go("order");});
@@ -43,3 +43,4 @@ public class CollectorFlowTest {
         }
     }
 }
+

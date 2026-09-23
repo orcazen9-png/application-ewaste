@@ -41,6 +41,7 @@ public class NativeFlowTest {
             scenario.onActivity(a->{
                 assertTrue(a.selectedCodes.contains("B01"));a.selectedCodes.clear();a.selectedCodes.add("B02");a.confirmCategories("categories");
                 assertEquals("corrected",a.draft.optJSONObject("wasteDecision").optString("method"));
+                a.root.findViewWithTag("matching-offers").performClick();assertEquals("matches",a.screen);assertEquals(a.draft.optString("id"),a.market.scanLotId);a.market.go("create");
                 a.root.findViewWithTag("save-draft").performClick();assertEquals("detail",a.screen);assertNative(a.root);
             });
             scenario.recreate();
