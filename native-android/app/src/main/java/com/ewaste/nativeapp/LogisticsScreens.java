@@ -40,7 +40,7 @@ final class LogisticsScreens {
         JSONArray cases=d.optJSONArray("cases");if(cases!=null&&cases.length()>0){a.label("Issues & review",20);for(int i=0;i<cases.length();i++){JSONObject c=cases.getJSONObject(i);a.label(c.optString("state")+" · "+c.optString("reason")+(c.isNull("resolution")?"":"\n"+c.optString("resolution")),15);}}
         a.label("Evidence & activity",20);JSONArray records=d.optJSONArray("records");if(records!=null)for(int i=0;i<records.length();i++){
             JSONObject r=records.getJSONObject(i),e=r.getJSONObject("data");a.label(r.optString("kind")+" · "+r.optString("createdAt"),15);
-            a.button("View record details","logistics-record-"+r.optString("id"),()->new AlertDialog.Builder(a).setTitle(r.optString("kind")).setMessage(e.toString()).setPositiveButton("Close",null).show());
+            a.button("View record details","logistics-record-"+r.optString("id"),()->new AlertDialog.Builder(a).setTitle(r.optString("kind").replace('-',' ')).setMessage("Recorded by "+r.optString("actorName","Order participant")+"\n\n"+details(e)).setPositiveButton("Close",null).show());
             JSONArray files=e.optJSONArray("fileIds");if(files!=null)for(int n=0;n<files.length();n++){String f=files.getString(n);a.button("View evidence photo "+(n+1),"logistics-photo-"+f,()->photo(order,f));}
         }
         a.button("Back to order","logistics-order",()->m.load("order","/orders/"+order));
@@ -76,4 +76,5 @@ final class LogisticsScreens {
         a.button("Back to pickup & receipt","evidence-back",()->open(d.optString("orderId")));
     }
     void photo(String order,String file){String token=a.token();a.task(()->a.api.logisticsPhoto(order,file,token),bytes->{ImageView image=new ImageView(a);image.setImageBitmap(BitmapFactory.decodeByteArray(bytes,0,bytes.length));image.setAdjustViewBounds(true);image.setContentDescription("Shared handover evidence");new AlertDialog.Builder(a).setTitle("Evidence photo").setView(image).setPositiveButton("Close",null).show();});}
+    String details(JSONObject e){StringBuilder text=new StringBuilder();String[][] fields={{"quantity","Quantity"},{"unit","Unit"},{"acceptedQuantity","Accepted quantity"},{"condition","Condition"},{"location","Location (manual)"},{"capturedAt","Evidence time"},{"message","Note"},{"noPhotoReason","Missing photo explanation"},{"amount","Logistics charge ₹"},{"basis","Charge basis"},{"payee","Payee"},{"source","Source"},{"reason","Reason"},{"partnerName","Transport partner"},{"partnerContact","Partner contact"},{"start","Window start"},{"end","Window end"},{"instructions","Instructions"},{"resolution","Resolution"}};for(String[] f:fields)if(e.has(f[0])&&!e.isNull(f[0])&&!e.optString(f[0]).isEmpty())text.append(f[1]).append(": ").append(e.optString(f[0])).append("\n");if(!e.isNull("supersedes")&&!e.optString("supersedes").isEmpty())text.append("Correction: earlier evidence remains in the activity history.\n");return text.toString();}
 }

@@ -2,6 +2,8 @@
 
 Development milestone, 24 September 2026, branch `codex/marketplace-orders`. Builds on the [account foundation](account-foundation.md) and implements the core demand-to-order path in M3 of the [production plan](production-requirements-plan.md). It has not deployed, migrated, or replaced the live phone application.
 
+The subsequent `codex/logistics-receipt` milestone adds pickup, inspection, custody guards and the operations portal. Its [implementation guide](logistics-receipt.md) supersedes the logistics limitations below on that branch; invoice and payment work remains separate.
+
 ## Working paths
 
 **Recycler:** Home → Buying portfolio → Add/edit requirement. Specify a broad category, optional detailed equipment code, specification, price per kg or piece, minimum quantity, finite or unlimited demand, service areas, pickup/drop-off and expiry. Paused requirements stay private. Publishing requires a verified facility; this milestone does not offer self-verification or a new verification administration interface.

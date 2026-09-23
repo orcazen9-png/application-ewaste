@@ -15,11 +15,11 @@ async function order(env,user,orderId){
 async function job(env,o){return await stmt(env,'SELECT * FROM logistics_jobs WHERE order_id=?',o.id).first()||{order_id:o.id,version:o.version,state:'not_arranged',cost_version:0,cost_ack_version:0,returned_base:0,accepted_base:null};}
 const afterPickup=j=>!!j.pickup_json;
 async function projection(env,user,o){
-  const j=await job(env,o),records=await rows(stmt(env,`SELECT * FROM logistics_records WHERE order_id=? ${user.staff?'':"AND kind<>'internal-note'"} ORDER BY version DESC LIMIT 100`,o.id));
+  const j=await job(env,o),records=await rows(stmt(env,`SELECT r.*,coalesce(u.display_name,s.name,r.actor) AS actor_name FROM logistics_records r LEFT JOIN users u ON 'user:'||u.id=r.actor LEFT JOIN operations_staff s ON 'staff:'||s.id=r.actor WHERE r.order_id=? ${user.staff?'':"AND r.kind<>'internal-note'"} ORDER BY r.version DESC LIMIT 100`,o.id));
   const cases=await rows(stmt(env,'SELECT * FROM logistics_cases WHERE order_id=? ORDER BY created_at DESC LIMIT 100',o.id));
   return {order:{id:o.id,version:o.version,state:o.state,collectorId:o.collector_id,recyclerId:o.recycler_id,materialAmount:rupees(o.material_paise),paymentState:'Not recorded',locality:parse(o.snapshot_json).locality},
     logistics:{state:o.state==='cancelled'?'cancelled':j.state,unit:o.unit,mode:o.mode,requested:quantity(o.quantity_base,o.unit),schedule:parse(j.schedule_json),cost:parse(j.cost_json),costVersion:j.cost_version,costAcknowledged:j.cost_version>0&&j.cost_ack_version===j.cost_version,pickup:parse(j.pickup_json),receipt:parse(j.receipt_json),return:parse(j.return_json),acceptedQuantity:quantity(j.accepted_base,o.unit),returnedQuantity:quantity(j.returned_base,o.unit),canCancel:o.state==='accepted'&&!afterPickup(j)},
-    records:records.map(r=>({id:r.id,version:r.version,actor:r.actor,kind:r.kind,data:parse(r.data_json),createdAt:r.created_at})),cases};
+    records:records.map(r=>({id:r.id,version:r.version,actor:r.actor,actorName:r.actor_name,kind:r.kind,data:parse(r.data_json),createdAt:r.created_at})),cases};
 }
 async function begin(request,env,user){
   const input=await body(request);requireId(input.commandId);
@@ -50,7 +50,7 @@ async function action(request,env,user,o,kind){
   if(user.staff)staffOnly(user);
   const c=await begin(request,env,user);if(c.previous)return c.previous;
   const input=c.input,j=await job(env,o),time=now(),version=o.version+1,recordId=id();
-  if(o.version!==input.expectedVersion||o.state!=='accepted')fail('Order changed or is cancelled. Refresh first.',409);
+  if(o.version!==input.expectedVersion||(o.state!=='accepted'&&!['resolve-issue','internal-note'].includes(kind)))fail('Order changed or is cancelled. Refresh first.',409);
   const collector=!user.staff&&user.id===o.collector_id,recycler=!user.staff&&user.id===o.recycler_id;
   let data={},allocation=null,openCase=null,closeCase=null;
   switch(kind){
@@ -130,7 +130,7 @@ async function action(request,env,user,o,kind){
     case 'internal-note':staffOnly(user);data={message:needed(input.message,2000,'restricted operations note')};break;
     default:fail('Unknown logistics action.',404);
   }
-  const first=stmt(env,"UPDATE orders SET version=version+1,updated_at=? WHERE id=? AND version=? AND state='accepted'",time,o.id,o.version);
+  const first=stmt(env,"UPDATE orders SET version=version+1,updated_at=? WHERE id=? AND version=? AND state=?",time,o.id,o.version,o.state);
   const extras=[(g,a)=>stmt(env,`INSERT INTO logistics_jobs(order_id,version,state,partner_id,schedule_json,cost_json,pickup_json,receipt_json,return_json,cost_version,cost_ack_version,accepted_base,returned_base,updated_at)
     SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE ${g} ON CONFLICT(order_id) DO UPDATE SET version=excluded.version,state=excluded.state,partner_id=excluded.partner_id,schedule_json=excluded.schedule_json,cost_json=excluded.cost_json,pickup_json=excluded.pickup_json,receipt_json=excluded.receipt_json,return_json=excluded.return_json,cost_version=excluded.cost_version,cost_ack_version=excluded.cost_ack_version,accepted_base=excluded.accepted_base,returned_base=excluded.returned_base,updated_at=excluded.updated_at`,o.id,version,j.state,j.partner_id||null,j.schedule_json||null,j.cost_json||null,j.pickup_json||null,j.receipt_json||null,j.return_json||null,j.cost_version,j.cost_ack_version,j.accepted_base,j.returned_base,time,...a),
     (g,a)=>stmt(env,`INSERT INTO logistics_records(id,order_id,version,actor,kind,data_json,created_at) SELECT ?,?,?,?,?,?,? WHERE ${g}`,recordId,o.id,version,user.actor,kind,JSON.stringify(data),time,...a)];

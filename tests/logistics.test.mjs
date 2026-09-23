@@ -78,6 +78,12 @@ test('post-pickup cancellation uses return evidence and releases stock only once
   assert.equal((await f.read()).logistics.state,'returned');assert.equal((await f.ok(f.r,'/requirements/'+f.req.id)).requirement.remaining,'500.000');
   const z=await f.env.DB.prepare('SELECT * FROM reservations WHERE order_id=?').bind(f.order).first();assert.equal(z.state,'released');
 });
+test('operations can close a pre-pickup issue after cancellation without reopening logistics',async t=>{
+  const f=await setup(t);await f.act(f.c,'issue',{message:'Collection no longer needed'});let d=await f.read();
+  await f.ok(f.c,'/orders/'+f.order+'/cancel','POST',{commandId:id(),expectedVersion:d.order.version,message:'Collector cancelled before pickup'});
+  d=await f.read();await f.okOps('/orders/'+f.order+'/resolve-issue','POST',{commandId:id(),expectedVersion:d.order.version,caseId:d.cases[0].id,message:'Cancelled before pickup; no goods left collector'});
+  d=await f.read();assert.equal(d.order.state,'cancelled');assert.equal(d.cases[0].state,'resolved');assert.equal(d.logistics.state,'cancelled');
+});
 test('concurrent stale logistics actions cannot duplicate custody or erase a schedule revision',async t=>{
   const f=await setup(t);await f.ready();const payload={commandId:id(),expectedVersion:(await f.read()).order.version,...f.evidence('200')},path='/orders/'+f.order+'/logistics/pickup';
   const answers=await Promise.all([f.call(f.c,path,'POST',payload),f.call(f.c,path,'POST',{...payload,commandId:id()})]);assert.deepEqual(answers.map(r=>r.status).sort(),[200,409]);
