@@ -77,12 +77,12 @@ test('shared demo persists photos, prices and decisions; isolates workspaces; mi
 test('a slow Gemini reply triggers one backup request and the first answer wins',async()=>{
  const reply=()=>Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(answer)}]}}]});
  let calls=0;
- const result=await assessPhoto(new Uint8Array([255,216,255]),'image/jpeg','broad',{GEMINI_API_KEY:'k',GEMINI_MODEL:'m',GEMINI_HEDGE_MS:'20'},async()=>{
+ const result=await assessPhoto(new Uint8Array([255,216,255]),'image/jpeg','broad',{GEMINI_API_KEY:'k',GEMINI_MODEL:'m',GEMINI_HEDGE_MS:'1'},async()=>{
   calls++;
-  if(calls===1)await new Promise(r=>setTimeout(r,300));   // first request stalls
+  if(calls===1)return new Promise(()=>{}); // first request never answers
   return reply();
  });
- assert.equal(calls,2);assert.equal(result.items[0].code,'B01');assert(result.latencyMs<250,'backup answer used instead of the stalled one');
+ assert.equal(calls,2);assert.equal(result.items[0].code,'B01');
  let single=0;
  await assessPhoto(new Uint8Array([255,216,255]),'image/jpeg','broad',{GEMINI_API_KEY:'k',GEMINI_MODEL:'m',GEMINI_HEDGE_MS:'0'},async()=>{single++;return reply();});
  assert.equal(single,1,'hedging can be switched off');

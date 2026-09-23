@@ -1,0 +1,466 @@
+{
+  "version": 1,
+  "scope": "User-provided 46-category prototype; not a regulatory determination",
+  "categories": [
+    {
+      "index": 0,
+      "code": "ITEW1",
+      "name": "Centralized data processing: Mainframes, Minicomputers",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Historical mainframes and minicomputers, mostly museum examples.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 1,
+      "code": "ITEW2",
+      "name": "Personal Computers (Central Processing Unit with input and output devices)",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Desktop system units with monitors, keyboards and mice.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 2,
+      "code": "ITEW3",
+      "name": "Laptop Computers (Central Processing Unit with input and output devices)",
+      "group": "IT and telecommunications",
+      "rule_status": "provisional",
+      "visual_limit": "Laptop and notebook terminology overlaps. Define a dataset rule for separating ITEW3 and ITEW4 before training.",
+      "follow_up": "Is this recorded as a laptop or notebook in the device specification?",
+      "requires_metadata": true
+    },
+    {
+      "index": 3,
+      "code": "ITEW4",
+      "name": "Notebook Computers",
+      "group": "IT and telecommunications",
+      "rule_status": "provisional",
+      "visual_limit": "Laptop and notebook terminology overlaps. Define a dataset rule for separating ITEW3 and ITEW4 before training.",
+      "follow_up": "Is this recorded as a notebook rather than a laptop in the device specification?",
+      "requires_metadata": true
+    },
+    {
+      "index": 4,
+      "code": "ITEW5",
+      "name": "Notepad Computers",
+      "group": "IT and telecommunications",
+      "rule_status": "provisional",
+      "visual_limit": "PROVISIONAL: pen-operated and early slate/convertible computers are candidates only. Confirm the meaning of Notepad Computers before assigning training labels; these overlap notebooks and tablets.",
+      "follow_up": "What does Notepad Computer mean in your inventory? Provide a model or device specification.",
+      "requires_metadata": true
+    },
+    {
+      "index": 5,
+      "code": "ITEW6",
+      "name": "Printers including cartridges",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "8 printer photos and 2 cartridge photos. Some printers also scan, copy or fax; apply a consistent primary-function rule.",
+      "follow_up": "Is this primarily a printer, a copier, or a standalone cartridge?",
+      "requires_metadata": true
+    },
+    {
+      "index": 6,
+      "code": "ITEW7",
+      "name": "Copying Equipment",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Copier-focused candidates including multifunction machines. May overlap ITEW6; confirm the model and primary function.",
+      "follow_up": "Is copying the primary function of this model?",
+      "requires_metadata": true
+    },
+    {
+      "index": 7,
+      "code": "ITEW8",
+      "name": "Electrical and Electronic Typewriters",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 8,
+      "code": "ITEW9",
+      "name": "User Terminal and Systems",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Historical video terminals and a thin client, rather than standalone desktop PCs.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 9,
+      "code": "ITEW10",
+      "name": "Facsimile",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Does the label or specification identify a fax machine?",
+      "requires_metadata": true
+    },
+    {
+      "index": 10,
+      "code": "ITEW11",
+      "name": "Telex",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 11,
+      "code": "ITEW12",
+      "name": "Telephones",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 12,
+      "code": "ITEW13",
+      "name": "Pay Telephones",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Some photos show a whole PCO booth. Annotate the telephone itself for device detection.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 13,
+      "code": "ITEW14",
+      "name": "Cordless Telephones",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 14,
+      "code": "ITEW15",
+      "name": "Cellular Telephones",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Keypad cellular phones in this starter selection. Smartphones also belong to the broader cellular-phone class.",
+      "follow_up": "What is the phone model, and does your phablet rule apply?",
+      "requires_metadata": true
+    },
+    {
+      "index": 15,
+      "code": "ITEW16",
+      "name": "Answering System",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 16,
+      "code": "ITEW17",
+      "name": "Telecommunications transmission equipment",
+      "group": "IT and telecommunications",
+      "rule_status": "provisional",
+      "visual_limit": "Telecom transmission modules, multiplexing/access equipment and conferencing codecs. Apply your taxonomy's rules for this broad residual category.",
+      "follow_up": "Does a more specific telecom equipment category apply?",
+      "requires_metadata": true
+    },
+    {
+      "index": 17,
+      "code": "ITEW18",
+      "name": "BTS components excluding tower",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Radio units, base-station cabinets, baseband equipment and power modules; no tower structures. Ten images do not cover every possible BTS component.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 18,
+      "code": "ITEW19",
+      "name": "Tablets, iPad",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "iPad examples in this starter selection; additional brands would improve coverage.",
+      "follow_up": "Is this a tablet or a large-screen phone?",
+      "requires_metadata": true
+    },
+    {
+      "index": 19,
+      "code": "ITEW20",
+      "name": "Phablets",
+      "group": "IT and telecommunications",
+      "rule_status": "provisional",
+      "visual_limit": "Galaxy Note examples are provisional phablet candidates. Define a size/model rule to separate this class from ITEW15.",
+      "follow_up": "What phone models or screen-size rule count as phablets in your inventory?",
+      "requires_metadata": true
+    },
+    {
+      "index": 20,
+      "code": "ITEW21",
+      "name": "Scanners",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 21,
+      "code": "ITEW22",
+      "name": "Routers",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Check model labels and WAN ports to distinguish routers from combined modem-router or optical-network devices.",
+      "follow_up": "Does this model include a modem, or is it a router only?",
+      "requires_metadata": true
+    },
+    {
+      "index": 22,
+      "code": "ITEW23",
+      "name": "GPS",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 23,
+      "code": "ITEW24",
+      "name": "UPS",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "",
+      "follow_up": "Is this a computer UPS or a home inverter/UPS?",
+      "requires_metadata": true
+    },
+    {
+      "index": 24,
+      "code": "ITEW25",
+      "name": "Inverter",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Some photos include batteries. Annotate the inverter itself; home UPS and inverter marketing names overlap.",
+      "follow_up": "Is this a home inverter or a computer UPS?",
+      "requires_metadata": true
+    },
+    {
+      "index": 25,
+      "code": "ITEW26",
+      "name": "Modems",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "Includes combined ADSL modem-router units. Verify modem functionality instead of classifying by antennas.",
+      "follow_up": "Does the model specification identify modem functionality?",
+      "requires_metadata": true
+    },
+    {
+      "index": 26,
+      "code": "ITEW27",
+      "name": "Electronic Data Storage Devices",
+      "group": "IT and telecommunications",
+      "rule_status": "reviewable",
+      "visual_limit": "HDDs, SSDs and flash media. Some mixed lots include RAM or other components; exclude those from storage annotations.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 27,
+      "code": "CEEW1",
+      "name": "Television sets, including LCD and LED televisions",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "CRT and flat-screen television candidates. Distinguish TVs from CEEW6 monitors using model/tuner information.",
+      "follow_up": "Does this display include a television tuner or is it a monitor?",
+      "requires_metadata": true
+    },
+    {
+      "index": 28,
+      "code": "CEEW2",
+      "name": "Refrigerator",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Mostly single-door refrigerators plus a double-door example. Some photos show multiple units.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 29,
+      "code": "CEEW3",
+      "name": "Washing Machine",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Top-load and front-load machines. Confirm the main object rather than packaging or adjacent appliances.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 30,
+      "code": "CEEW4",
+      "name": "Air Conditioners, excluding centralized air-conditioning plants",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Five window-AC and five split-AC examples. Split photos may contain indoor and outdoor units; no centralized plant examples.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 31,
+      "code": "CEEW5",
+      "name": "Fluorescent and other mercury-containing lamps",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Compact fluorescent lamps and disposal piles. Verify markings/technology; LED replacements can look similar. Some photos are close-ups or supplier product shots.",
+      "follow_up": "What lamp technology is printed on the bulb? Is it fluorescent rather than an LED replacement?",
+      "requires_metadata": true
+    },
+    {
+      "index": 32,
+      "code": "CEEW6",
+      "name": "Screen, Electronic Photo Frames, Electronic Display Panel, Monitors",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Seven monitor and three digital-photo-frame examples. For monitor photos containing other PC components, annotate the screen itself.",
+      "follow_up": "Is this a monitor/photo frame rather than a television?",
+      "requires_metadata": true
+    },
+    {
+      "index": 33,
+      "code": "CEEW7",
+      "name": "Radio Sets",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Portable transistor radio examples, including overseas vintage devices. The ten images do not exhaust radio form factors.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 34,
+      "code": "CEEW8",
+      "name": "Set Top Boxes",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Set-top receivers, sometimes with remotes or accessories. Annotate the receiver unit.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 35,
+      "code": "CEEW9",
+      "name": "Video Cameras",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Camcorder examples. Some cameras also take stills; use device type/model to separate CEEW9 and CEEW19.",
+      "follow_up": "Is this a dedicated camcorder or a still camera that also records video?",
+      "requires_metadata": true
+    },
+    {
+      "index": 36,
+      "code": "CEEW10",
+      "name": "Video Recorders",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "VHS video recorder candidates, including stacked devices. Verify recording capability for player-only models before assigning CEEW10.",
+      "follow_up": "Can this device record video, or only play it?",
+      "requires_metadata": true
+    },
+    {
+      "index": 37,
+      "code": "CEEW11",
+      "name": "Hi-Fi Recorders",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Hi-fi cassette deck candidates. Verify recording capability using model or record controls, rather than assuming every tape player records.",
+      "follow_up": "Does this cassette deck record as well as play audio?",
+      "requires_metadata": true
+    },
+    {
+      "index": 38,
+      "code": "CEEW12",
+      "name": "Audio Amplifiers",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Audio amplifier examples, including PA and car amplifiers. Some photos include speakers.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 39,
+      "code": "CEEW13",
+      "name": "Other equipment for recording/reproducing sound or images and distribution through telecommunications",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "provisional",
+      "visual_limit": "PROVISIONAL residual-category candidates: DVD/CD playback equipment. Confirm inclusion and precedence relative to other recording/reproduction categories.",
+      "follow_up": "Does a more specific audio/video category apply?",
+      "requires_metadata": true
+    },
+    {
+      "index": 40,
+      "code": "CEEW14",
+      "name": "Solar Panels/Cells, Solar Photovoltaic Panels/Cells/Modules",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Photovoltaic module and rooftop-array photos. These do not establish panel performance or discarded-waste status.",
+      "follow_up": "Confirm the device category shown.",
+      "requires_metadata": false
+    },
+    {
+      "index": 41,
+      "code": "CEEW15",
+      "name": "Luminaires for fluorescent lamps except household luminaires",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Commercial/industrial fluorescent-luminaire candidates. Vintage fittings may have been rewired or converted to LED; verify lamp type and intended non-household use.",
+      "follow_up": "Is this a non-household fluorescent fitting, and has it been converted to LED?",
+      "requires_metadata": true
+    },
+    {
+      "index": 42,
+      "code": "CEEW16",
+      "name": "High-intensity discharge lamps, including pressure sodium and metal-halide lamps",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "High-pressure sodium and metal-halide candidates. Verify lamp markings; appearance alone cannot establish chemistry. Some photos contain multiple lamp types.",
+      "follow_up": "Do the lamp markings specify high-pressure sodium or metal halide?",
+      "requires_metadata": true
+    },
+    {
+      "index": 43,
+      "code": "CEEW17",
+      "name": "Low-pressure sodium lamps",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Low-pressure sodium SO/SOX candidates with U-shaped discharge tubes. Some collector images combine multiple photographic views; avoid treating these as independent examples.",
+      "follow_up": "Do the lamp markings specify low-pressure sodium (SO/SOX)?",
+      "requires_metadata": true
+    },
+    {
+      "index": 44,
+      "code": "CEEW18",
+      "name": "Other lighting/equipment for spreading or controlling light, excluding filament bulbs",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "provisional",
+      "visual_limit": "PROVISIONAL residual lighting candidates: LED stage and work/flood lights. No filament bulbs intentionally selected. Confirm coverage under your taxonomy.",
+      "follow_up": "What lighting technology is used, and does a more specific category apply?",
+      "requires_metadata": true
+    },
+    {
+      "index": 45,
+      "code": "CEEW19",
+      "name": "Digital Camera",
+      "group": "Consumer electrical/electronics and photovoltaic panels",
+      "rule_status": "reviewable",
+      "visual_limit": "Compact digital still cameras. Add DSLR/mirrorless examples for wider coverage; video-capable still cameras can overlap CEEW9.",
+      "follow_up": "Is this primarily a digital still camera?",
+      "requires_metadata": true
+    }
+  ]
+}
