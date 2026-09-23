@@ -1,0 +1,26 @@
+name = "ewaste-accounts-demo"
+main = "dist/server/index.js"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[build]
+command = "npm run build"
+
+[vars]
+ACCOUNTS_ENABLED = "true"
+INVITATIONS_ENABLED = "true"
+OPS_ENABLED = "true"
+ACCOUNT_STORAGE = "d1"
+SPACE_CREATION = "disabled"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
+DEMO_MODE = "true"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ewaste-accounts-demo"
+database_id = "11329f1d-35b2-4150-97f2-ed725282cddf"
+migrations_dir = "drizzle"
+
+[observability]
+enabled = true

@@ -93,7 +93,7 @@ ALTER TABLE `reservations` ADD `demand_base` integer;
 DROP TRIGGER order_guard;
 --> statement-breakpoint
 CREATE TRIGGER order_guard BEFORE INSERT ON orders BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Supply, demand or reviewed terms changed. Refresh the request.') WHERE NOT EXISTS (
     SELECT 1 FROM supply_requests s JOIN requirements r ON r.id=s.requirement_id
     JOIN lots l ON l.id=s.lot_id JOIN lot_items i ON i.lot_id=l.id AND i.id=s.item_id
     JOIN facilities f ON f.id=r.facility_id JOIN users c ON c.id=s.collector_id JOIN users u ON u.id=s.recycler_id
@@ -108,17 +108,15 @@ CREATE TRIGGER order_guard BEFORE INSERT ON orders BEGIN
         r.detailed_code=(SELECT json_extract(message,'$.code') FROM market_events WHERE request_id=s.id AND kind='category.confirmed' ORDER BY CAST(json_extract(message,'$.requestVersion') AS INTEGER) DESC LIMIT 1))
       AND i.quantity_base-coalesce((SELECT sum(quantity_base) FROM reservations WHERE lot_id=s.lot_id AND item_id=s.item_id AND state IN ('held','consumed')),0)>=s.quantity_base
       AND (r.target_base IS NULL OR r.target_base-coalesce((SELECT sum(coalesce(demand_base,quantity_base)) FROM reservations WHERE requirement_id=r.id AND state IN ('held','consumed')),0)>=s.quantity_base)
-  ) THEN RAISE(ABORT,'MARKET_CONFLICT: Supply, demand or reviewed terms changed. Refresh the request.') END;
+  );
 END;
 --> statement-breakpoint
 DROP TRIGGER requirement_allocation_guard;
 --> statement-breakpoint
 CREATE TRIGGER requirement_allocation_guard BEFORE UPDATE ON requirements BEGIN
-  SELECT CASE WHEN EXISTS(SELECT 1 FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed'))
-    AND (NEW.broad_code<>OLD.broad_code OR NEW.detailed_code IS NOT OLD.detailed_code OR NEW.unit<>OLD.unit)
-    THEN RAISE(ABORT,'MARKET_CONFLICT: Reserved requirements cannot change material identity or unit.') END;
-  SELECT CASE WHEN NEW.target_base IS NOT NULL AND NEW.target_base<coalesce((SELECT sum(coalesce(demand_base,quantity_base)) FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed')),0)
-    THEN RAISE(ABORT,'MARKET_CONFLICT: Target cannot be below the allocated quantity.') END;
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Reserved requirements cannot change material identity or unit.') WHERE EXISTS(SELECT 1 FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed'))
+    AND (NEW.broad_code<>OLD.broad_code OR NEW.detailed_code IS NOT OLD.detailed_code OR NEW.unit<>OLD.unit);
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Target cannot be below the allocated quantity.') WHERE NEW.target_base IS NOT NULL AND NEW.target_base<coalesce((SELECT sum(coalesce(demand_base,quantity_base)) FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed')),0);
 END;
 --> statement-breakpoint
 CREATE TRIGGER custody_cancel_guard BEFORE UPDATE OF state ON orders WHEN NEW.state='cancelled' AND EXISTS(SELECT 1 FROM logistics_jobs WHERE order_id=OLD.id AND pickup_json IS NOT NULL) BEGIN
@@ -126,7 +124,7 @@ CREATE TRIGGER custody_cancel_guard BEFORE UPDATE OF state ON orders WHEN NEW.st
 END;
 --> statement-breakpoint
 CREATE TRIGGER pickup_partner_guard BEFORE INSERT ON logistics_records WHEN NEW.kind='pickup' BEGIN
- SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM logistics_jobs j JOIN logistics_partners p ON p.id=j.partner_id WHERE j.order_id=NEW.order_id AND p.status='active' AND j.cost_version>0 AND j.cost_ack_version=j.cost_version) THEN RAISE(ABORT,'MARKET_CONFLICT: Logistics partner or charge acknowledgment changed.') END;
+ SELECT RAISE(ABORT,'MARKET_CONFLICT: Logistics partner or charge acknowledgment changed.') WHERE NOT EXISTS(SELECT 1 FROM logistics_jobs j JOIN logistics_partners p ON p.id=j.partner_id WHERE j.order_id=NEW.order_id AND p.status='active' AND j.cost_version>0 AND j.cost_ack_version=j.cost_version);
 END;
 --> statement-breakpoint
 CREATE TRIGGER demand_base_guard BEFORE UPDATE OF demand_base ON reservations WHEN NEW.demand_base IS NOT NULL AND (NEW.demand_base<0 OR NEW.demand_base>COALESCE(OLD.demand_base,OLD.quantity_base)) BEGIN

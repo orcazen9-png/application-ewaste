@@ -163,7 +163,7 @@ CREATE INDEX `requests_collector` ON `supply_requests` (`collector_id`,`id`);-->
 CREATE INDEX `requests_recycler` ON `supply_requests` (`recycler_id`,`id`);
 --> statement-breakpoint
 CREATE TRIGGER request_guard BEFORE INSERT ON supply_requests BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Requirement or draft changed. Refresh and review before submitting.') WHERE NOT EXISTS (
     SELECT 1 FROM requirements r JOIN facilities f ON f.id=r.facility_id
     JOIN lots l ON l.id=NEW.lot_id JOIN lot_items i ON i.lot_id=l.id AND i.id=NEW.item_id
     JOIN users c ON c.id=NEW.collector_id JOIN users u ON u.id=r.owner_id
@@ -176,11 +176,11 @@ CREATE TRIGGER request_guard BEFORE INSERT ON supply_requests BEGIN
       AND NEW.quantity_base>=r.minimum_base AND i.quantity_base>=NEW.quantity_base
       AND EXISTS(SELECT 1 FROM json_each(r.areas_json) WHERE value=lower(trim(l.locality)))
       AND EXISTS(SELECT 1 FROM json_each(r.modes_json) WHERE value=NEW.mode)
-  ) THEN RAISE(ABORT,'MARKET_CONFLICT: Requirement or draft changed. Refresh and review before submitting.') END;
+  );
 END;
 --> statement-breakpoint
 CREATE TRIGGER order_guard BEFORE INSERT ON orders BEGIN
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Supply, demand or reviewed terms changed. Refresh the request.') WHERE NOT EXISTS (
     SELECT 1 FROM supply_requests s JOIN requirements r ON r.id=s.requirement_id
     JOIN lots l ON l.id=s.lot_id JOIN lot_items i ON i.lot_id=l.id AND i.id=s.item_id
     JOIN facilities f ON f.id=r.facility_id JOIN users c ON c.id=s.collector_id JOIN users u ON u.id=s.recycler_id
@@ -195,7 +195,7 @@ CREATE TRIGGER order_guard BEFORE INSERT ON orders BEGIN
         r.detailed_code=(SELECT json_extract(message,'$.code') FROM market_events WHERE request_id=s.id AND kind='category.confirmed' ORDER BY CAST(json_extract(message,'$.requestVersion') AS INTEGER) DESC LIMIT 1))
       AND i.quantity_base-coalesce((SELECT sum(quantity_base) FROM reservations WHERE lot_id=s.lot_id AND item_id=s.item_id AND state IN ('held','consumed')),0)>=s.quantity_base
       AND (r.target_base IS NULL OR r.target_base-coalesce((SELECT sum(quantity_base) FROM reservations WHERE requirement_id=r.id AND state IN ('held','consumed')),0)>=s.quantity_base)
-  ) THEN RAISE(ABORT,'MARKET_CONFLICT: Supply, demand or reviewed terms changed. Refresh the request.') END;
+  );
 END;
 --> statement-breakpoint
 CREATE TRIGGER order_reserve AFTER INSERT ON orders BEGIN
@@ -215,9 +215,7 @@ CREATE TRIGGER reserved_lot_guard BEFORE UPDATE ON lots WHEN EXISTS(SELECT 1 FRO
 END;
 --> statement-breakpoint
 CREATE TRIGGER requirement_allocation_guard BEFORE UPDATE ON requirements BEGIN
-  SELECT CASE WHEN EXISTS(SELECT 1 FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed'))
-    AND (NEW.broad_code<>OLD.broad_code OR NEW.detailed_code IS NOT OLD.detailed_code OR NEW.unit<>OLD.unit)
-    THEN RAISE(ABORT,'MARKET_CONFLICT: Reserved requirements cannot change material identity or unit.') END;
-  SELECT CASE WHEN NEW.target_base IS NOT NULL AND NEW.target_base<coalesce((SELECT sum(quantity_base) FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed')),0)
-    THEN RAISE(ABORT,'MARKET_CONFLICT: Target cannot be below the allocated quantity.') END;
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Reserved requirements cannot change material identity or unit.') WHERE EXISTS(SELECT 1 FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed'))
+    AND (NEW.broad_code<>OLD.broad_code OR NEW.detailed_code IS NOT OLD.detailed_code OR NEW.unit<>OLD.unit);
+  SELECT RAISE(ABORT,'MARKET_CONFLICT: Target cannot be below the allocated quantity.') WHERE NEW.target_base IS NOT NULL AND NEW.target_base<coalesce((SELECT sum(quantity_base) FROM reservations WHERE requirement_id=OLD.id AND state IN ('held','consumed')),0);
 END;

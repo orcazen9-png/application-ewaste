@@ -52,7 +52,7 @@ final class FinanceScreens {
             JSONObject p=payments.getJSONObject(i);a.label("₹"+money(p.optLong("amount_paise"))+" · "+p.optString("account")+" · "+p.optString("status"),19);a.label(p.optString("method")+" · "+p.optString("reference")+"\n"+p.optString("paid_on")+"\n"+p.optString("evidence_reason"),15);
             if(!p.isNull("proof_id"))a.button("Open payment proof","finance-proof-"+i,()->viewDocument(order,p.optString("proof_id"),"application/pdf"));
             boolean recipient=p.optString("account").equals("material")?collector:!collector;
-            if(recipient&&(p.optString("status").equals("pending")||p.optString("status").equals("disputed")){
+            if(recipient&&(p.optString("status").equals("pending")||p.optString("status").equals("disputed"))){
                 a.button(collector?"Confirm money received":"Verify logistics payee receipt","finance-confirm-"+i,()->review(o,"payment-review",p,"confirm"));a.button("Dispute payment","finance-dispute-payment-"+i,()->review(o,"payment-review",p,"dispute"));
             }
             String last="";if(reviews!=null)for(int j=0;j<reviews.length();j++){JSONObject r=reviews.getJSONObject(j);if(r.optString("payment_id").equals(p.optString("id"))){a.label(r.optString("decision")+" · "+r.optString("reason"),14);if(r.optString("decision").startsWith("reversal_"))last=r.optString("decision");}}
