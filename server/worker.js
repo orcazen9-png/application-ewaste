@@ -15,6 +15,7 @@ export async function api(request,env){
   const url=new URL(request.url),path=url.pathname;
   if(path.startsWith('/api/v1/'))return accountApi(request,env);
   if(path==='/api/health')return json({ok:true});
+  if(env.ACCOUNTS_ENABLED==='true')fail('This server uses personal accounts. Update the app and sign in.',410);
   if(path==='/api/spaces'&&request.method==='POST'){
     // Public hosts (no Sites sign-in in front) share one pre-created workspace through its join link instead.
     if(env.SPACE_CREATION==='disabled')fail('New workspaces are turned off here. Open the demo join link or scan its QR code.',403);

@@ -2,7 +2,6 @@ package com.ewaste.nativeapp;
 
 import android.app.AlertDialog;
 import android.graphics.*;
-import android.graphics.drawable.GradientDrawable;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -45,7 +44,7 @@ public class AccountActivity extends AppCompatActivity {
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);
         try {
-            session=vault.read();
+            try{session=vault.read();}catch(Exception unreadableSession){vault.clear();session=null;}
             if(session!=null&&Instant.parse(session.getString("expiresAt")).isBefore(Instant.now())){vault.clear();session=null;}
             if(saved!=null){
                 screen=saved.getString("screen","home");challengeId=saved.getString("challenge","");phone=saved.getString("phone","");
@@ -206,9 +205,8 @@ public class AccountActivity extends AppCompatActivity {
             String fileId=UUID.randomUUID().toString();File output=store.photo(accountId,fileId);
             try(FileOutputStream out=new FileOutputStream(output)){if(!bitmap.compress(Bitmap.CompressFormat.JPEG,85,out))throw new IOException("Could not save photo.");}finally{bitmap.recycle();}
             if(output.length()>2*1024*1024)throw new IOException("Choose a smaller photo.");
-            JSONObject saved=store.draft(accountId,draftId);JSONArray photos=saved.getJSONArray("fileIds");if(photos.length()>=10)throw new IOException("A lot can contain up to 10 photos.");
-            photos.put(fileId);store.save(accountId,saved);return saved;
-        },saved->{draft=saved;screen="edit";render();});
+            store.attachPhoto(accountId,draftId,fileId);return draftId;
+        },savedId->{try{draft=store.draft(accountId,savedId);screen="edit";render();}catch(Exception e){showError(e);}});
     }
     void profile()throws Exception {
         JSONObject user=session.getJSONObject("user");label("Profile",23);label(user.getString("mobile")+" · "+user.getString("role"),15);

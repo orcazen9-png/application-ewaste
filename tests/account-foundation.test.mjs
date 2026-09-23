@@ -61,6 +61,13 @@ test('additive migration preserves legacy records and seeds the existing 20/106 
   const fk=await env.DB.prepare('PRAGMA foreign_keys').first();assert.equal(fk.foreign_keys,1);
 });
 
+test('account-enabled servers do not expose the legacy shared-workspace write surface',async t=>{
+  const {env}=await fixture(t);
+  const response=await worker.fetch(new Request('https://app.example/api/spaces',{method:'POST',headers:{'oai-authenticated-user-id':'untrusted-header'}}),env);
+  assert.equal(response.status,410);
+  assert.equal((await worker.fetch(new Request('https://app.example/api/health'),env)).status,200);
+});
+
 test('OTP signup stores only a token hash; registered role wins over a later role selection',async t=>{
   const f=await fixture(t), account=await f.login();
   assert.equal(account.user.role,'collector');assert.match(account.token,/^ews_[a-f0-9]{64}$/);

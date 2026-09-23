@@ -90,6 +90,8 @@ public class AccountFoundationTest {
             scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(1,a.draft.optJSONArray("fileIds").length());a.root.findViewWithTag("account-save-online").performClick();});waitIdle(scenario);
             scenario.onActivity(a->{try{assertEquals("synced",a.store.draft(a.account(),a.draft.getString("id")).getString("syncState"));assertEquals(1,fake.uploads);nativeOnly(a.root);}catch(Exception e){throw new AssertionError(e);}});
             scenario.recreate();waitIdle(scenario);scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(fake.user.optString("id"),a.account());});
+            Bitmap screenshot=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+            assertNotNull(screenshot);try(FileOutputStream out=new FileOutputStream(new File(context.getExternalFilesDir(null),"account-draft.png"))){screenshot.compress(Bitmap.CompressFormat.PNG,100,out);}finally{screenshot.recycle();}
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
     }
 

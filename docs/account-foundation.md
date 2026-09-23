@@ -24,7 +24,7 @@ cd native-android
 ./gradlew assembleDebug assembleDebugAndroidTest -PaccountFoundation=true -PaccountApiOrigin=https://YOUR-STAGING-WORKER.workers.dev
 ```
 
-The server's new `/api/v1/` API is disabled unless `ACCOUNTS_ENABLED` is exactly `true`. Its capability endpoint is readable while disabled. The existing `/api/` workspace endpoints remain distinct and cannot authenticate personal accounts using pairing codes.
+The server's new `/api/v1/` API is disabled unless `ACCOUNTS_ENABLED` is exactly `true`. Its capability endpoint is readable while disabled. Account-enabled servers reject the old shared-workspace endpoints with an update-required response; the current live server remains in legacy mode. Pairing codes cannot authenticate personal accounts.
 
 Prepare a separate staging Worker, D1 database and private R2 bucket before enabling this mode. Apply the checked-in migrations to staging only; set the D1 binding to `DB` and the private bucket binding to `ACCOUNT_BUCKET`. Do not add the account bucket to a public file route. The existing legacy bucket fallback is not used by personal-account file routes.
 
@@ -63,7 +63,7 @@ New lots currently remain drafts. No route publishes demand, marks delivery comp
 
 ## Validation and release conditions
 
-Local backend tests cover account isolation, role retention, failed/expired/replayed codes, concurrent verification, revoked/expired/suspended accounts, photo ownership/immutability/limits, exact quantities, retry receipts and concurrent draft updates. The full backend suite currently has 50 passing tests; syntax checks and the Worker bundle build also pass.
+Local backend tests cover account isolation, role retention, failed/expired/replayed codes, concurrent verification, revoked/expired/suspended accounts, photo ownership/immutability/limits, exact quantities, retry receipts, concurrent draft updates and separation from the old shared-workspace API. Validation results are recorded below after verification.
 
 `Verify account foundation` runs native compilation and Android 16 instrumentation for the real native sign-in/draft/photo screens, account isolation, encrypted sessions, interrupted sync and process/activity recovery. CI uploads test reports, not an installable replacement APK. Native results must be checked before calling this milestone verified.
 

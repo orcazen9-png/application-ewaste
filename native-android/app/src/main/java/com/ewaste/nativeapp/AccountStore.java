@@ -75,11 +75,11 @@ public final class AccountStore extends SQLiteOpenHelper {
         }finally{db.endTransaction();}
     }
     public synchronized void conflict(String account,String id){validId(account);validId(id);getWritableDatabase().execSQL("UPDATE drafts SET state='conflict' WHERE account_id=? AND id=?",new Object[]{account,id});}
-    public synchronized void acceptServerBase(String account,String id,int version){
-        validId(account);validId(id);SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{
-            db.delete("outbox","account_id=? AND lot_id=?",new String[]{account,id});
-            db.execSQL("UPDATE drafts SET server_version=?,state='local' WHERE account_id=? AND id=?",new Object[]{version,account,id});db.setTransactionSuccessful();
-        }finally{db.endTransaction();}
+    public synchronized void attachPhoto(String account,String id,String fileId)throws Exception {
+        validId(fileId);JSONObject saved=draft(account,id);
+        if(saved==null)throw new IllegalArgumentException("Draft not found");
+        JSONArray photos=saved.getJSONArray("fileIds");if(photos.length()>=10)throw new IllegalStateException("A lot can contain up to 10 photos.");
+        photos.put(fileId);save(account,saved);
     }
     public synchronized void importServer(String account,JSONObject remote)throws Exception {
         String id=validId(remote.getString("id"));JSONObject local=draft(account,id);
