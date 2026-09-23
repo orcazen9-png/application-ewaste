@@ -60,10 +60,10 @@ jobs:
           disable-animations: true
           script: |
             cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest --no-daemon
-            adb pull /sdcard/Android/data/com.ewaste.marketplace.collector/files/account-draft.png native-account-draft.png
+            timeout 20s adb pull /sdcard/account-draft.png native-android/native-account-draft.png
       - name: Capture emulator details on failure
         if: failure()
-        run: adb logcat -d -s AndroidRuntime > native-android/account-crash.log || true
+        run: timeout 20s adb logcat -d -s AndroidRuntime > native-android/account-crash.log || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -3,6 +3,7 @@ package com.ewaste.nativeapp;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -90,8 +91,13 @@ public class AccountFoundationTest {
             scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(1,a.draft.optJSONArray("fileIds").length());a.root.findViewWithTag("account-save-online").performClick();});waitIdle(scenario);
             scenario.onActivity(a->{try{assertEquals("synced",a.store.draft(a.account(),a.draft.getString("id")).getString("syncState"));assertEquals(1,fake.uploads);nativeOnly(a.root);}catch(Exception e){throw new AssertionError(e);}});
             scenario.recreate();waitIdle(scenario);scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(fake.user.optString("id"),a.account());});
-            Bitmap screenshot=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
-            assertNotNull(screenshot);try(FileOutputStream out=new FileOutputStream(new File(context.getExternalFilesDir(null),"account-draft.png"))){screenshot.compress(Bitmap.CompressFormat.PNG,100,out);}finally{screenshot.recycle();}
+            // Keep the CI screenshot outside app storage, which test cleanup can remove.
+            ParcelFileDescriptor capture=InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .executeShellCommand("sh -c 'screencap -p /sdcard/account-draft.png && test -s /sdcard/account-draft.png && echo captured'");
+            try(BufferedReader reader=new BufferedReader(new InputStreamReader(new ParcelFileDescriptor.AutoCloseInputStream(capture)))){
+                String line;boolean captured=false;while((line=reader.readLine())!=null)captured|=line.equals("captured");
+                assertTrue("Native screen captured for CI review",captured);
+            }
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
     }
 
