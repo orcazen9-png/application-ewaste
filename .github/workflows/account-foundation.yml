@@ -1,7 +1,7 @@
 name: Verify account foundation
 on:
   push:
-    branches: [codex/account-foundation, codex/marketplace-orders, codex/logistics-receipt]
+    branches: [codex/account-foundation, codex/marketplace-orders, codex/logistics-receipt, codex/erp-release]
     paths:
       - 'server/**'
       - 'native-android/**'

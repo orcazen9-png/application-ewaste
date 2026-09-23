@@ -40,6 +40,7 @@ public class AccountActivity extends AppCompatActivity {
     final ExecutorService tasks=Executors.newSingleThreadExecutor();
     private static final String TAXONOMY="106-draft-v1";
     private static final int GREEN=0xff125b46,INK=0xff1e3028,BG=0xfff4f7f4;
+    final ActivityResultLauncher<String[]> documentPicker=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(market!=null)market.finance.document(uri);});
     final ActivityResultLauncher<String[]> gallery=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(uri!=null)processPhoto(uri,account(),screen.equals("market")&&market.view().equals("evidence")?market.logistics.context():draft==null?"":draft.optString("id"));});
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
 
@@ -99,6 +100,16 @@ public class AccountActivity extends AppCompatActivity {
         if(working)label("Connecting…",14);
     }
     void signIn(){
+        if(BuildConfig.INVITATION_SIGN_IN){
+            label("Sign in with your invitation",21);
+            label("Use the personal invitation supplied by Freedom Value. Your account role is already assigned.",16);
+            EditText invite=field("Invitation code","","account-invitation",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD,68,null);invite.setSaveEnabled(false);
+            button("Sign in","account-redeem",()->{try{
+                JSONObject input=new JSONObject().put("code",invite.getText().toString().trim());
+                task(()->api.request("POST","/auth/invitation","",input),result->{try{applySession(result);refresh();}catch(Exception e){showError(e);}});
+            }catch(Exception e){showError(e);}});
+            label("Invitations work once. If you sign out or change phones, request a new invitation. Mobile number verification is not enabled in this demo.",14);return;
+        }
         label(challengeId.isEmpty()?"Sign in with your mobile number":"Enter the code sent to your phone",21);
         if(challengeId.isEmpty()){
             field("Mobile number",phone,"account-phone",InputType.TYPE_CLASS_PHONE,24,value->phone=value);
@@ -133,6 +144,8 @@ public class AccountActivity extends AppCompatActivity {
         label(user.optString("displayName","").isEmpty()?user.getString("mobile"):user.getString("displayName"),16);
         button("Profile","account-profile",()->{screen="profile";render();});
         market.pending();
+        button("Earnings & payments","account-earnings",()->market.load("earnings","/earnings"));
+        button("Notifications","account-inbox",()->market.load("inbox","/notifications"));
         button("Orders","account-orders",()->market.load("orders","/orders"));
         button(collector?"My requests":"Incoming requests","account-requests",()->market.load("requests","/requests"));
         if(collector){

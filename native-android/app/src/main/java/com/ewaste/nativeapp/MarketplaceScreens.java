@@ -14,8 +14,9 @@ import java.util.*;
 final class MarketplaceScreens {
     final AccountActivity a;
     final LogisticsScreens logistics;
+    final FinanceScreens finance;
     JSONObject state=new JSONObject();
-    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);}
+    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);finance=new FinanceScreens(this);}
     void put(JSONObject o,String k,Object v){Catalog.put(o,k,v);}
     String view(){return state.optString("view","");}
     JSONObject data(){JSONObject d=state.optJSONObject("data");return d==null?new JSONObject():d;}
@@ -43,11 +44,14 @@ final class MarketplaceScreens {
                     JSONArray photos=pending.getJSONObject("input").optJSONArray("fileIds");
                     if(photos!=null)for(int i=0;i<photos.length();i++){String photo=photos.getString(i);if(!a.store.uploaded(owner,photo)){a.api.upload(a.store.photo(owner,photo),photo,token);a.store.markUploaded(owner,photo);}}
                 }
-                JSONObject result=a.api.request(pending.getString("method"),pending.getString("path"),token,pending.getJSONObject("input"));a.store.finishMarket(owner);return new JSONObject().put("result",result).put("destination",pending.getString("destination"));}
+                JSONObject payload=new JSONObject(pending.getJSONObject("input").toString());
+                if(pending.getString("path").endsWith("/finance/invoice")){String doc=payload.getString("documentId"),order=pending.getString("path").split("/")[2];a.api.uploadDocument(finance.documentFile(owner,doc),order,doc,payload.getString("documentMime"),payload.getString("documentName"),token);payload.remove("documentMime");payload.remove("documentName");}
+                JSONObject result=a.api.request(pending.getString("method"),pending.getString("path"),token,payload);a.store.finishMarket(owner);return new JSONObject().put("result",result).put("destination",pending.getString("destination"));}
             catch(AccountApi.Failure error){if(error.status>=400&&error.status<500&&error.status!=401&&error.status!=408&&error.status!=429)a.store.finishMarket(owner);throw error;}
         },result->{String destination=result.optString("destination");JSONObject value=result.optJSONObject("result");
             if(destination.equals("portfolio"))load("portfolio","/requirements");
             else if(destination.equals("order"))load("order","/orders/"+value.optString("id"));
+            else if(destination.equals("finance"))finance.open(value.optString("id"));
             else if(destination.equals("logistics"))logistics.open(value.optString("id"));
             else load("request","/requests/"+value.optString("id"));
         });
@@ -69,6 +73,10 @@ final class MarketplaceScreens {
             case "request":request(d);break;
             case "orders":orders(d);break;
             case "order":order(d);break;
+            case "finance":finance.render(d);break;
+            case "invoice-form":finance.invoiceForm(d);break;
+            case "earnings":finance.earnings(d);break;
+            case "inbox":finance.inbox(d);break;
             case "logistics":logistics.render(d);break;
             case "evidence":logistics.evidence(d);break;
         }
@@ -203,6 +211,7 @@ final class MarketplaceScreens {
         a.label("Shared order",23);JSONObject o=d.optJSONObject("order");if(o==null){a.label("Connect to load this order.",16);return;}
         a.label("Order "+o.getString("id").substring(0,8)+" · "+o.getString("state"),18);a.label("Acknowledged material amount: ₹"+o.getString("materialAmount"),20);
         a.label(o.optString("logistics")+"\nPayment: "+o.optString("paymentState")+"\nFinal invoice is still required.",15);
+        a.button("Invoices & settlement","market-finance",()->finance.open(o.optString("id")));
         a.button("Pickup & receipt","market-logistics",()->logistics.open(o.optString("id")));
         if(d.optJSONObject("request")!=null)a.button("Original request and photos","market-original-request",()->load("request","/requests/"+o.optString("requestId")));
         JSONArray terms=d.optJSONArray("terms");if(terms!=null)for(int i=0;i<terms.length();i++){JSONObject term=terms.getJSONObject(i);a.label("Price revision "+term.getInt("version")+" · ₹"+new BigDecimal(term.getLong("amountPaise")).movePointLeft(2)+" · "+term.getString("status"),16);a.label(term.getString("reason"),14);

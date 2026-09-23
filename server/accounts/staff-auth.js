@@ -1,9 +1,13 @@
 import {fail} from './common.js';
+import {invitationStaff} from './invitations.js';
 
 const certificates=new Map();
 function decode(value){return Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));}
 // The assertion is verified even when an alternate Worker hostname bypasses Access.
 export async function authenticateStaff(request,env){
+  if(env.ACCOUNTS_ENABLED!=='true'||env.OPS_ENABLED!=='true')fail('Operations access is not configured.',503);
+  const invited=await invitationStaff(request,env);if(invited)return invited;
+  if(env.INVITATIONS_ENABLED==='true'&&!env.OPS_ACCESS_ISSUER)fail('Sign in with your personal staff invitation.',401);
   const issuer=env.OPS_ACCESS_ISSUER,audience=env.OPS_ACCESS_AUD;
   if(env.ACCOUNTS_ENABLED!=='true'||env.OPS_ENABLED!=='true'||!/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(issuer||'')||!audience)fail('Operations access is not configured.',503);
   const token=request.headers.get('Cf-Access-Jwt-Assertion')||'';

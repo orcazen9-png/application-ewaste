@@ -1,3 +1,4 @@
+import {paymentColumns,paymentState} from './finance-read.js';
 import {CATALOG} from '../../dist/waste-catalog.js';
 import {body,canonical,fail,hash,id,json,now,requireId,requireRole,rows,text} from './common.js';
 import {quantityBase} from './lots.js';
@@ -120,11 +121,11 @@ async function permittedRequest(env,user,record){
 }
 function projectRequest(r){return {id:r.id,collectorId:r.collector_id,recyclerId:r.recycler_id,requirementId:r.requirement_id,lotId:r.lot_id,itemId:r.item_id,quantity:quantity(r.quantity_base,r.unit),unit:r.unit,mode:r.mode,
   ask:rupees(r.ask_paise),snapshot:JSON.parse(r.snapshot_json),state:r.state,version:r.version,expiresAt:r.expires_at,createdAt:r.created_at};}
-function projectOrder(r){return {id:r.id,requestId:r.request_id,collectorId:r.collector_id,recyclerId:r.recycler_id,facilityId:r.facility_id,state:r.state,version:r.version,materialAmount:rupees(r.material_paise),termsVersion:r.terms_version,logistics:'Not arranged; recycler pays separately',paymentState:'Not recorded',createdAt:r.created_at};}
+function projectOrder(r){return {id:r.id,requestId:r.request_id,collectorId:r.collector_id,recyclerId:r.recycler_id,facilityId:r.facility_id,state:r.state,version:r.version,materialAmount:rupees(r.material_paise),termsVersion:r.terms_version,logistics:'Not arranged; recycler pays separately',paymentState:paymentState(r),createdAt:r.created_at};}
 async function requestsRoute(request,env,user,record,action){
   if(request.method==='GET'){
     if(record){const row=await permittedRequest(env,user,record);const events=await rows(env.DB.prepare('SELECT id,actor_id AS actorId,kind,message,created_at AS createdAt FROM market_events WHERE request_id=? ORDER BY created_at DESC,id DESC LIMIT 100').bind(record));
-      const order=await env.DB.prepare('SELECT * FROM orders WHERE request_id=?').bind(record).first();return json({request:projectRequest(row),events,order:order?projectOrder(order):null});}
+      const order=await env.DB.prepare(`SELECT o.*,${paymentColumns} FROM orders o WHERE request_id=?`).bind(record).first();return json({request:projectRequest(row),events,order:order?projectOrder(order):null});}
     const page=await rows(env.DB.prepare('SELECT * FROM supply_requests WHERE (collector_id=? OR recycler_id=?) AND id>? ORDER BY id LIMIT 51').bind(user.id,user.id,cursor(request)));
     return json({requests:page.slice(0,50).map(projectRequest),nextCursor:page.length>50?page[49].id:null});
   }
@@ -172,7 +173,7 @@ async function requestsRoute(request,env,user,record,action){
   else fail('This action is not allowed.',403);
   return commit(env,c,env.DB.prepare("UPDATE supply_requests SET state=?,version=version+1,updated_at=? WHERE id=? AND version=? AND state IN ('submitted','clarification')").bind(state,time,record,row.version),{id:record,version:row.version+1},[event(env,record,user.id,action,message)]);
 }
-async function permittedOrder(env,user,record){const row=await env.DB.prepare('SELECT * FROM orders WHERE id=? AND (collector_id=? OR recycler_id=?)').bind(requireId(record),user.id,user.id).first();if(!row)fail('Order not found.',404);return row;}
+async function permittedOrder(env,user,record){const row=await env.DB.prepare(`SELECT o.*,${paymentColumns} FROM orders o WHERE id=? AND (collector_id=? OR recycler_id=?)`).bind(requireId(record),user.id,user.id).first();if(!row)fail('Order not found.',404);return row;}
 async function ordersRoute(request,env,user,record,action){
   if(request.method==='GET'){
     if(record){const o=await permittedOrder(env,user,record),r=await permittedRequest(env,user,o.request_id);
@@ -180,7 +181,7 @@ async function ordersRoute(request,env,user,record,action){
       const events=await rows(env.DB.prepare('SELECT id,actor_id AS actorId,kind,message,created_at AS createdAt FROM market_events WHERE request_id=? ORDER BY created_at DESC,id DESC LIMIT 100').bind(o.request_id));
       const logistics=await env.DB.prepare('SELECT state,pickup_json FROM logistics_jobs WHERE order_id=?').bind(record).first();
       return json({order:{...projectOrder(o),logistics:logistics?logistics.state+'; recycler pays separately':projectOrder(o).logistics,canCancel:o.state==='accepted'&&!logistics?.pickup_json},request:projectRequest(r),terms,events});}
-    const page=await rows(env.DB.prepare('SELECT * FROM orders WHERE (collector_id=? OR recycler_id=?) AND id>? ORDER BY id LIMIT 51').bind(user.id,user.id,cursor(request)));
+    const page=await rows(env.DB.prepare(`SELECT o.*,${paymentColumns} FROM orders o WHERE (collector_id=? OR recycler_id=?) AND id>? ORDER BY id LIMIT 51`).bind(user.id,user.id,cursor(request)));
     return json({orders:page.slice(0,50).map(projectOrder),nextCursor:page.length>50?page[49].id:null});
   }
   if(request.method!=='POST'||!record||!action)fail('Method not supported.',405);

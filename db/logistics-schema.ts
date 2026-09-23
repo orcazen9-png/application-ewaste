@@ -5,7 +5,7 @@ import {files} from './account-schema';
 
 export const operationsStaff=sqliteTable('operations_staff',{
   id:text('id').primaryKey().notNull(),subject:text('subject').notNull().unique(),email:text('email').notNull(),name:text('name').notNull(),role:text('role').notNull(),status:text('status').notNull(),createdAt:text('created_at').notNull()
-},t=>[check('staff_role',sql`${t.role} IN ('operations','viewer')`),check('staff_status',sql`${t.status} IN ('active','suspended')`)]);
+},t=>[check('staff_role',sql`${t.role} IN ('operations','finance','operations_finance','viewer')`),check('staff_status',sql`${t.status} IN ('active','suspended')`)]);
 export const logisticsPartners=sqliteTable('logistics_partners',{
   id:text('id').primaryKey().notNull(),name:text('name').notNull(),contact:text('contact').notNull(),areasJson:text('areas_json').notNull(),status:text('status').notNull(),version:integer('version').notNull(),updatedAt:text('updated_at').notNull()
 },t=>[check('partner_status',sql`${t.status} IN ('active','unavailable')`),check('partner_version',sql`${t.version}>0`)]);

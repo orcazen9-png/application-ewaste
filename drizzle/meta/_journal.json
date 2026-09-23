@@ -36,6 +36,27 @@
       "when": 1790208000002,
       "tag": "0004_logistics_receipt",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790208000003,
+      "tag": "0005_invoices_settlement",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790208000004,
+      "tag": "0006_invitation_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790208000005,
+      "tag": "0007_ledger_notifications",
+      "breakpoints": true
     }
   ]
 }

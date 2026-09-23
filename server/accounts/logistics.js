@@ -1,15 +1,20 @@
+import {paymentColumns,paymentState} from './finance-read.js';
+import {begin,commit} from './commands.js';
 import {body,canonical,fail,hash,id,json,now,requireId,rows,text} from './common.js';
 import {money,quantity,rupees} from './marketplace.js';
 import {quantityBase} from './lots.js';
 import {authenticateStaff} from './staff-auth.js';
+import {invitationRoute} from './invitations.js';
+import {financeRoute} from './finance.js';
+import {analyticsRoute} from './analytics.js';
 
 const parse=value=>value?JSON.parse(value):null;
 const stmt=(env,sql,...args)=>env.DB.prepare(sql).bind(...args);
 const needed=(value,max,label)=>{const v=text(value,max,label);if(!v)fail('Enter '+label+'.');return v;};
-const staffOnly=user=>{if(!user.staff||user.role!=='operations')fail('Only operations staff can make this change.',403);};
+const staffOnly=user=>{if(!user.staff||!['operations','operations_finance'].includes(user.role))fail('Only operations staff can make this change.',403);};
 function date(value,label){const time=Date.parse(value);if(typeof value!=='string'||!Number.isFinite(time))fail('Enter a valid '+label+'.');return new Date(time).toISOString();}
 async function order(env,user,orderId){
-  requireId(orderId);const o=await stmt(env,`SELECT o.*,s.quantity_base,s.unit,s.mode,s.snapshot_json,s.lot_id,s.item_id,s.requirement_id FROM orders o JOIN supply_requests s ON s.id=o.request_id WHERE o.id=?`,orderId).first();
+  requireId(orderId);const o=await stmt(env,`SELECT o.*,${paymentColumns},s.quantity_base,s.unit,s.mode,s.snapshot_json,s.lot_id,s.item_id,s.requirement_id FROM orders o JOIN supply_requests s ON s.id=o.request_id WHERE o.id=?`,orderId).first();
   if(!o||(!user.staff&&o.collector_id!==user.id&&o.recycler_id!==user.id))fail('Order not found.',404);return o;
 }
 async function job(env,o){return await stmt(env,'SELECT * FROM logistics_jobs WHERE order_id=?',o.id).first()||{order_id:o.id,version:o.version,state:'not_arranged',cost_version:0,cost_ack_version:0,returned_base:0,accepted_base:null};}
@@ -17,22 +22,9 @@ const afterPickup=j=>!!j.pickup_json;
 async function projection(env,user,o){
   const j=await job(env,o),records=await rows(stmt(env,`SELECT r.*,coalesce(u.display_name,s.name,r.actor) AS actor_name FROM logistics_records r LEFT JOIN users u ON 'user:'||u.id=r.actor LEFT JOIN operations_staff s ON 'staff:'||s.id=r.actor WHERE r.order_id=? ${user.staff?'':"AND r.kind<>'internal-note'"} ORDER BY r.version DESC LIMIT 100`,o.id));
   const cases=await rows(stmt(env,'SELECT * FROM logistics_cases WHERE order_id=? ORDER BY created_at DESC LIMIT 100',o.id));
-  return {order:{id:o.id,version:o.version,state:o.state,collectorId:o.collector_id,recyclerId:o.recycler_id,materialAmount:rupees(o.material_paise),paymentState:'Not recorded',locality:parse(o.snapshot_json).locality},
+  return {order:{id:o.id,version:o.version,state:o.state,collectorId:o.collector_id,recyclerId:o.recycler_id,materialAmount:rupees(o.material_paise),paymentState:paymentState(o),locality:parse(o.snapshot_json).locality},
     logistics:{state:o.state==='cancelled'?'cancelled':j.state,unit:o.unit,mode:o.mode,requested:quantity(o.quantity_base,o.unit),schedule:parse(j.schedule_json),cost:parse(j.cost_json),costVersion:j.cost_version,costAcknowledged:j.cost_version>0&&j.cost_ack_version===j.cost_version,pickup:parse(j.pickup_json),receipt:parse(j.receipt_json),return:parse(j.return_json),acceptedQuantity:quantity(j.accepted_base,o.unit),returnedQuantity:quantity(j.returned_base,o.unit),canCancel:o.state==='accepted'&&!afterPickup(j)},
     records:records.map(r=>({id:r.id,version:r.version,actor:r.actor,actorName:r.actor_name,kind:r.kind,data:parse(r.data_json),createdAt:r.created_at})),cases};
-}
-async function begin(request,env,user){
-  const input=await body(request);requireId(input.commandId);
-  if(!Number.isSafeInteger(input.expectedVersion)||input.expectedVersion<0)fail('Refresh this record before making changes.');
-  const digest=await hash(canonical({path:new URL(request.url).pathname,input,method:request.method}));
-  const replay=async()=>{const r=await stmt(env,'SELECT * FROM logistics_commands WHERE actor=? AND command_id=?',user.actor,input.commandId).first();if(!r)return null;if(r.payload_hash!==digest)fail('This action differs from the saved retry.',409);return json({...parse(r.result_json),replayed:true});};
-  return {input,digest,replay,previous:await replay(),user};
-}
-async function commit(env,c,first,result,extras=[]){
-  const guard='EXISTS(SELECT 1 FROM logistics_commands WHERE actor=? AND command_id=?)',args=[c.user.actor,c.input.commandId];
-  let writes;try{writes=await env.DB.batch([first,stmt(env,`INSERT INTO logistics_commands(actor,command_id,payload_hash,result_json,created_at) SELECT ?,?,?,?,? WHERE changes()=1`,...args,c.digest,JSON.stringify(result),now()),...extras.map(make=>make(guard,args))]);}
-  catch(error){const replay=await c.replay();if(replay)return replay;if(/MARKET_CONFLICT:/.test(error.message))fail('The order or physical custody changed. Refresh before continuing.',409);throw error;}
-  if(writes[0].meta.changes!==1){const replay=await c.replay();if(replay)return replay;fail('This record changed. Refresh and review your action.',409);}return json({...result,replayed:false});
 }
 async function evidence(env,user,input,unit){
   if(user.staff)fail('Handover evidence must be submitted by the collector or recycler.',403);
@@ -154,7 +146,14 @@ export async function logisticsRoute(request,env,user,path){
   if(route[2]&&request.method==='POST')return action(request,env,user,o,route[2]);fail('Method not supported.',405);
 }
 export async function operationsApi(request,env){
+  const invited=await invitationRoute(request,env,new URL(request.url).pathname);if(invited)return invited;
   const user=await authenticateStaff(request,env),path=new URL(request.url).pathname;
+  const finance=await financeRoute(request,env,user,path);if(finance)return finance;
+  const analytics=await analyticsRoute(request,env,user,path);if(analytics)return analytics;
+  if(path==='/api/ops/auth/logout'&&request.method==='POST'){
+    if(user.tokenHash)await stmt(env,'UPDATE staff_sessions SET revoked_at=? WHERE token_hash=?',now(),user.tokenHash).run();
+    const response=json({signedOut:true});response.headers.set('Set-Cookie','__Host-ewaste_ops=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return response;
+  }
   if(path==='/api/ops/me'&&request.method==='GET')return json({staff:{id:user.id,name:user.name,role:user.role}});
   if(path==='/api/ops/partners'&&request.method==='GET')return json({partners:await rows(stmt(env,'SELECT * FROM logistics_partners ORDER BY name LIMIT 200'))});
   const partner=path.match(/^\/api\/ops\/partners\/([^/]+)$/);

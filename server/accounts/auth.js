@@ -4,7 +4,7 @@ import {otpProvider} from './otp-provider.js';
 const languages = new Set(['en', 'hi', 'mr']);
 const roles = new Set(['collector', 'recycler']);
 const SESSION_MS = 24 * 60 * 60 * 1000;
-const publicUser = user => ({id: user.id, role: user.role, mobile: user.mobile, displayName: user.display_name,
+export const publicUser = user => ({id: user.id, role: user.role, mobile: user.mobile.startsWith('invited:')?'':user.mobile, identityMethod:user.mobile.startsWith('invited:')?'invitation':'sms', displayName: user.display_name,
   language: user.language, locality: user.locality, version: user.version});
 
 export async function rate(env, subject, windowSeconds, limit) {

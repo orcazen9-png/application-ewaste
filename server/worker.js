@@ -6,6 +6,7 @@ import {lotAssessment} from './lot-assessments.js';
 import {collectorProjection,marketCommand} from './collector-market.js';
 import {accountApi} from './accounts/api.js';
 import {operationsApi} from './accounts/logistics.js';
+import {privateD1Bucket} from './accounts/d1-storage.js';
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const keyPattern=/^[a-f0-9]{48}$/;
@@ -83,6 +84,7 @@ export async function api(request,env){
   fail('Not found.',404);
 }
 export default {async fetch(request,env){
+  if(!env.ACCOUNT_BUCKET&&env.ACCOUNT_STORAGE==='d1'&&env.DB)env={...env,ACCOUNT_BUCKET:privateD1Bucket(env.DB)};
   if(!env.BUCKET&&env.DB)env={...env,BUCKET:d1Bucket(env.DB)};
   const url=new URL(request.url),origin=request.headers.get('Origin');
   const allowed=origin===url.origin||['https://localhost','capacitor://localhost','http://localhost'].includes(origin)||(env.LOCAL_DEMO&&/^http:\/\/127\.0\.0\.1:\d+$/.test(origin||''));
