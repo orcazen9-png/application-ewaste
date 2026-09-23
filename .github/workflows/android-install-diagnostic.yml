@@ -1,0 +1,82 @@
+name: Diagnose native APK update installation
+on:
+  push:
+    branches: [cloudflare-demo]
+    paths: ['.github/workflows/android-install-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-distributed-apks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+      - name: Retrieve the exact v1 download
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35896424672
+          name: E-Waste-Marketplace-native-v1
+          path: baseline
+      - name: Retrieve the exact v2 download
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 35903561500
+          name: E-Waste-Marketplace-native-v2
+          path: update
+      - name: Compare signing certificates and package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          sdktools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          for version in baseline update; do
+            apk="$(find "$version" -name '*.apk' | head -1)"
+            "$sdktools/apksigner" verify --verbose --print-certs "$apk" > "reports/$version-signature.txt"
+            "$sdktools/aapt" dump badging "$apk" > "reports/$version-manifest.txt"
+            "$sdktools/zipalign" -c -P 16 4 "$apk"
+            sha256sum "$apk" >> reports/apk-hashes.txt
+            cert="$(grep 'Signer #1 certificate SHA-256 digest:' "reports/$version-signature.txt")"
+            echo "::notice::$version $cert"
+            grep "package: name=" "reports/$version-manifest.txt" | while IFS= read -r line; do echo "::notice::$version $line"; done
+          done
+          if diff <(grep 'Signer #1 certificate SHA-256 digest:' reports/baseline-signature.txt) <(grep 'Signer #1 certificate SHA-256 digest:' reports/update-signature.txt); then
+            echo '::notice::DISTRIBUTED_APK_CERTIFICATES_MATCH'
+          else
+            echo '::error::DISTRIBUTED_APK_CERTIFICATES_DIFFER'
+          fi
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test the exact v1 to v2 update
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          script: |
+            adb shell input keyevent KEYCODE_WAKEUP
+            adb shell wm dismiss-keyguard
+            adb install baseline/E-Waste-Marketplace-native-v1.apk > reports/install-v1.txt 2>&1
+            adb install -r update/E-Waste-Marketplace-native-v2.apk > reports/update-v2.txt 2>&1 || true
+            cat reports/update-v2.txt
+            if grep -q '^Success' reports/update-v2.txt; then echo '::notice::EXACT_V1_TO_V2_UPDATE_PASSED_ANDROID_16'; else cat reports/update-v2.txt | while IFS= read -r line; do echo "::error::$line"; done; fi
+            adb shell am start -W -n com.ewaste.marketplace.nativeapp/com.ewaste.nativeapp.MainActivity > reports/launch.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-install-diagnostic
+          path: reports/
+          retention-days: 14
