@@ -30,12 +30,14 @@ Replace the actor value with the exact existing actor. Reissue validates the cur
 - Photos and invoices are private D1 chunks, checked against stored hashes. The allowance is 200 MB of raw files. Account photos are limited to 2 MB and documents to 5 MB. Private file permissions remain attached to accounts and shared orders.
 - The invited demonstration recycler has a specific expiring `demo_facility_access` record. Its facility remains unverified. The API accepts this grant only when `DEMO_MODE=true`, and the interface identifies it as demo access. No CPCB verification is claimed.
 - Finance records external transfers; the app sends no money. Collector material receipts and recycler-paid logistics are separate. Pending transfers do not reduce the confirmed outstanding amount. Invoice approval and physical custody remain separate.
-- Android checks its notification inbox periodically when the OS permits. This is not an instant push service.
-- Detailed category names and some error/composite text remain English. Main controls support Hindi and Marathi.
+- Android checks its notification inbox periodically when the OS permits. This is not an instant push service. Older notifications remain available through inbox pagination.
+- Controls, all 20 broad/106 detailed categories, statuses and known validation messages support Hindi and Marathi. People’s notes and historical AI evidence retain their original language; technical diagnostics can show the original error. New Gemini requests ask for explanations in the selected language. Native-speaker review remains outstanding.
+- Earnings separate accepted quote value, approved invoices, pending transfers, confirmed receipts and outstanding dues. A pending transfer is not earned money; quotes can change through the order workflow.
+- ERP supports India-date, area, recycler, order-state and attention-queue filters. Invoice review, receipt confirmation, disputes and unscheduled logistics link to matching orders; CSV exports use the same filters. Request conversion and category-review counts have separate scopes explained on screen. Category-review counts are not AI accuracy measurements.
 
 ## Release and recovery evidence
 
-`accounts-release.yml` gates publication on backend checks, the permanent signing certificate, actual previous-v3 installation and v4 replacement with local-data/keystore preservation, and Android 16 native tests. Invitation codes, Cloudflare credentials, signing keys and Gemini keys must never appear in public artifacts.
+`accounts-release.yml` gates v5 publication on backend checks, the permanent signing certificate, actual previous-v4 installation and v5 replacement with local-data/keystore preservation, and Android 16 native tests. The upgrade check includes draft/photo data, encrypted pairing, the personal session and an account cache record. Invitation codes, Cloudflare credentials, signing keys and Gemini keys must never appear in public artifacts.
 
 A remote SQL export has been restored in isolated SQLite with integrity/foreign-key checks and reconstruction/hash verification of private files. Exports contain private records and credential hashes; keep them under private access controls. That rehearsal does not establish a scheduled backup policy or authorize replacing the live database.
 

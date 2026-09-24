@@ -12,4 +12,4 @@ Obtain your individual invitation from the project owner. Invitations and Gemini
 
 Earlier workspace data is retained in the same package but is not automatically assigned to personal accounts. The owner must review any migration. All 20 broad and 106 detailed category labels have Hindi and Marathi translations. Known validation messages and statuses are localized. People’s notes and historical model evidence retain their original language; optional technical diagnostics retain the original error. New Gemini requests ask for explanations in the account’s selected language.
 
-This update adds older-notification navigation, actionable ERP queues, recycler/state filters, request conversion and category-review counts.
+This update adds older-notification navigation, actionable ERP queues, recycler/state filters, request conversion and category-review counts. Earnings separate accepted quotes, pending transfers, confirmed receipts and outstanding dues; pending transfers are not counted as confirmed earnings.
