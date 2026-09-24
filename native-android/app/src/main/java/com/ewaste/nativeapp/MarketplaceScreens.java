@@ -92,7 +92,7 @@ final class MarketplaceScreens {
     }
     void newRequirement(){catalogue(()->{JSONObject draft=new JSONObject();put(draft,"id",UUID.randomUUID().toString());put(draft,"version",0);put(draft,"unit","kg");put(draft,"state","paused");put(draft,"minimum","1");put(draft,"broadCode","B01");put(draft,"validUntil",LocalDate.now().plusDays(30).toString());put(draft,"areas",new JSONArray().put(a.session.optJSONObject("user").optString("locality")));put(draft,"modes",new JSONArray().put("pickup"));show("requirement",draft);});}
     void portfolio(JSONObject d)throws Exception{
-        a.label(a.t("Buying requirements"),23);a.label(a.t(d.optBoolean("demoAccess")?"Demo access only. Facility verification is pending.":"Prepare your portfolio here. Facility verification is required to publish it."),15);
+        a.label(a.t("Buying requirements"),23);a.label(a.t(d.optBoolean("demoAccess")?a.t("Demo access only. Facility verification is pending."):a.t("Prepare your portfolio here. Facility verification is required to publish it.")),15);
         a.button(a.t("Add requirement"),"market-add-requirement",this::newRequirement);
         JSONArray list=d.optJSONArray("requirements");if(list==null||list.length()==0)a.label(a.t("No requirements loaded. Add one or refresh when online."),16);
         if(list!=null)for(int i=0;i<list.length();i++){
@@ -130,14 +130,14 @@ final class MarketplaceScreens {
     interface CategoryChoice{void choose(String code);}
     void chooseCategory(CategoryChoice choose,boolean allowAny){catalogue(()->{try{
         JSONArray all=a.store.cached(a.account(),"catalogue").getJSONArray("categories");String[] labels=new String[all.length()+(allowAny?1:0)];
-        if(allowAny)labels[0]=a.t("Any detailed category");for(int i=0;i<all.length();i++){JSONObject c=all.getJSONObject(i);labels[i+(allowAny?1:0)]=c.getString("code")+" — "+c.getString("name");}
+        if(allowAny)labels[0]=a.t("Any detailed category");for(int i=0;i<all.length();i++){JSONObject c=all.getJSONObject(i);labels[i+(allowAny?1:0)]=c.getString("code")+" — "+a.t(c.getString("name"));}
         new AlertDialog.Builder(a).setTitle(a.t("Confirm equipment category")).setItems(labels,(d,position)->{try{choose.choose(allowAny&&position==0?null:all.getJSONObject(position-(allowAny?1:0)).getString("code"));}catch(Exception e){a.showError(e);}}).setNegativeButton(a.t("Back"),null).show();
     }catch(Exception e){a.showError(e);}});}
     void requirementSummary(JSONObject r){
         a.label(r.optString("recyclerName")+" · "+(r.optBoolean("demoAccess")?a.t("Demo access only. Facility verification is pending."):a.t(r.optString("verificationStatus"))),14);
-        a.label("₹"+r.optString("rate")+" / "+r.optString("unit")+" · "+r.optString("state"),17);
-        a.label(a.t("Minimum ")+r.optString("minimum")+" · Remaining "+(r.isNull("remaining")?a.t("Unlimited"):r.optString("remaining"))+" "+r.optString("unit"),14);
-        a.label(a.t("Areas: ")+join(r.optJSONArray("areas"),", ")+" · Until "+r.optString("validUntil"),14);
+        a.label("₹"+r.optString("rate")+" / "+r.optString("unit")+" · "+a.t(r.optString("state")),17);
+        a.label(a.t("Minimum ")+r.optString("minimum")+a.t(" · Remaining ")+(r.isNull("remaining")?a.t("Unlimited"):r.optString("remaining"))+" "+r.optString("unit"),14);
+        a.label(a.t("Areas: ")+join(r.optJSONArray("areas"),", ")+a.t(" · Until ")+r.optString("validUntil"),14);
         a.label(r.optString("specification"),15);
     }
     String join(JSONArray array,String separator){List<String> items=new ArrayList<>();if(array!=null)for(int i=0;i<array.length();i++)items.add(array.optString(i));return String.join(separator,items);}
@@ -183,7 +183,7 @@ final class MarketplaceScreens {
         if(list!=null)for(int i=0;i<list.length();i++){JSONObject r=list.getJSONObject(i);a.label(r.getJSONObject("snapshot").optString("lotTitle")+" · "+r.getString("state"),18);a.label(r.getString("quantity")+" "+r.getString("unit"),15);a.button(a.t("Open request"),"market-request-"+r.getString("id"),()->load("request","/requests/"+r.optString("id")));}more(d,"requests");
     }
     void requestSummary(JSONObject r)throws Exception{
-        JSONObject s=r.getJSONObject("snapshot");a.label(s.optString("lotTitle"),21);a.label(r.optString("state")+" · "+r.optString("quantity")+" "+r.optString("unit")+" · "+r.optString("mode"),16);
+        JSONObject s=r.getJSONObject("snapshot");a.label(s.optString("lotTitle"),21);a.label(a.t(r.optString("state"))+" · "+r.optString("quantity")+" "+r.optString("unit")+" · "+a.t(r.optString("mode")),16);
         a.label(s.optString("description")+"\n"+s.optString("condition")+" · "+s.optString("locality"),16);
         a.label(a.t("Collector material proposal: ₹")+s.optString("collectorProposal"),18);a.label(a.t("Original quoted estimate: ₹")+s.optString("estimatedMaterial")+"\nReviewed: "+s.optString("reviewedAt"),14);
         a.label(a.t("Logistics is paid separately by recycler. No payment has been recorded."),14);
@@ -197,7 +197,7 @@ final class MarketplaceScreens {
             if(recycler){
                 a.button(a.t("Confirm detailed category"),"market-confirm-category",()->chooseCategory(code->{JSONObject input=input(r.optInt("version"));put(input,"code",code);change(base+"/review-category","POST",input,"request");},false));
                 a.button(a.t("Assess shared photo with Gemini"),"market-assess-shared",()->identify(null,r));
-                a.button(a.t("Accept material proposal"),"market-accept",()->new AlertDialog.Builder(a).setTitle(a.t("Accept this request?")).setMessage(a.t("Accept ₹")+r.optJSONObject("snapshot").optString("collectorProposal")+" for material and reserve the requested quantity. You cover logistics separately. Price can still be revised by agreement.").setPositiveButton(a.t("Accept"),(dialog,which)->change(base+"/accept","POST",input(r.optInt("version")),"order")).setNegativeButton(a.t("Back"),null).show());
+                a.button(a.t("Accept material proposal"),"market-accept",()->new AlertDialog.Builder(a).setTitle(a.t("Accept this request?")).setMessage(a.t("Accept ₹")+r.optJSONObject("snapshot").optString("collectorProposal")+a.t(" for material and reserve the requested quantity. You cover logistics separately. Price can still be revised by agreement.")).setPositiveButton(a.t("Accept"),(dialog,which)->change(base+"/accept","POST",input(r.optInt("version")),"order")).setNegativeButton(a.t("Back"),null).show());
                 a.button(a.t("Reject with reason"),"market-reject",()->message(a.t("Reject request"),base+"/reject",r.optInt("version"),"request"));
             }else a.button(a.t("Withdraw request"),"market-withdraw",()->message(a.t("Withdraw request"),base+"/withdraw",r.optInt("version"),"request"));
             a.button(a.t("Ask or reply to clarification"),"market-clarify",()->message(a.t("Clarification"),base+"/clarify",r.optInt("version"),"request"));
@@ -205,16 +205,16 @@ final class MarketplaceScreens {
     }
     void orders(JSONObject d)throws Exception{
         a.label(a.t("Shared orders"),23);JSONArray list=d.optJSONArray("orders");if(list==null||list.length()==0)a.label(a.t("No accepted orders loaded."),16);
-        if(list!=null)for(int i=0;i<list.length();i++){JSONObject o=list.getJSONObject(i);a.label(a.t("Order ")+o.getString("id").substring(0,8)+" · "+o.getString("state"),18);a.label(a.t("Material: ₹")+o.getString("materialAmount"),16);a.button(a.t("Open order"),"market-order-"+o.getString("id"),()->load("order","/orders/"+o.optString("id")));}more(d,"orders");
+        if(list!=null)for(int i=0;i<list.length();i++){JSONObject o=list.getJSONObject(i);a.label(a.t("Order ")+o.getString("id").substring(0,8)+" · "+a.t(o.getString("state")),18);a.label(a.t("Material: ₹")+o.getString("materialAmount"),16);a.button(a.t("Open order"),"market-order-"+o.getString("id"),()->load("order","/orders/"+o.optString("id")));}more(d,"orders");
     }
     void order(JSONObject d)throws Exception{
         a.label(a.t("Shared order"),23);JSONObject o=d.optJSONObject("order");if(o==null){a.label(a.t("Connect to load this order."),16);return;}
         a.label(a.t("Order ")+o.getString("id").substring(0,8)+" · "+o.getString("state"),18);a.label(a.t("Acknowledged material amount: ₹")+o.getString("materialAmount"),20);
-        a.label(o.optString("logistics")+"\nPayment: "+o.optString("paymentState")+"\nFinal invoice is still required.",15);
+        a.label(o.optString("logistics")+"\nPayment: "+a.t(o.optString("paymentState"))+a.t("\nFinal invoice is still required."),15);
         a.button(a.t("Invoices & settlement"),"market-finance",()->finance.open(o.optString("id")));
         a.button(a.t("Pickup & receipt"),"market-logistics",()->logistics.open(o.optString("id")));
         if(d.optJSONObject("request")!=null)a.button(a.t("Original request and photos"),"market-original-request",()->load("request","/requests/"+o.optString("requestId")));
-        JSONArray terms=d.optJSONArray("terms");if(terms!=null)for(int i=0;i<terms.length();i++){JSONObject term=terms.getJSONObject(i);a.label(a.t("Price revision ")+term.getInt("version")+" · ₹"+new BigDecimal(term.getLong("amountPaise")).movePointLeft(2)+" · "+term.getString("status"),16);a.label(term.getString("reason"),14);
+        JSONArray terms=d.optJSONArray("terms");if(terms!=null)for(int i=0;i<terms.length();i++){JSONObject term=terms.getJSONObject(i);a.label(a.t("Price revision ")+term.getInt("version")+" · ₹"+new BigDecimal(term.getLong("amountPaise")).movePointLeft(2)+" · "+a.t(term.getString("status")),16);a.label(term.getString("reason"),14);
             if(o.optString("state").equals("accepted")&&term.getString("status").equals("proposed")&&!a.account().equals(term.getString("proposedBy")))a.button(a.t("Acknowledge this price"),"market-acknowledge",()->{JSONObject input=input(o.optInt("version"));put(input,"termsVersion",term.optInt("version"));change("/orders/"+o.optString("id")+"/acknowledge-terms","POST",input,"order");});
         }
         if(o.optString("state").equals("accepted")){
@@ -225,7 +225,7 @@ final class MarketplaceScreens {
             if(o.optBoolean("canCancel",true))a.button(a.t("Cancel before collection"),"market-cancel",()->message(a.t("Cancel and release reserved stock"),"/orders/"+o.optString("id")+"/cancel",o.optInt("version"),"order"));
         }events(d.optJSONArray("events"));
     }
-    void events(JSONArray events)throws Exception{a.label(a.t("Recent activity"),20);if(events==null)return;for(int i=0;i<events.length();i++){JSONObject e=events.getJSONObject(i);String message=e.optString("message");if(e.optString("kind").equals("category.confirmed")){JSONObject category=new JSONObject(message);message=a.t("Detailed category confirmed: ")+category.getString("code")+" — "+category.getString("name");}a.label(e.optString("kind").replace('.',' ')+" · "+a.localDate(e.optString("createdAt"))+"\n"+message,14);}}
+    void events(JSONArray events)throws Exception{a.label(a.t("Recent activity"),20);if(events==null)return;for(int i=0;i<events.length();i++){JSONObject e=events.getJSONObject(i);String message=e.optString("message");if(e.optString("kind").equals("category.confirmed")){JSONObject category=new JSONObject(message);message=a.t("Detailed category confirmed: ")+category.getString("code")+" — "+a.t(category.getString("name"));}a.label(a.t(e.optString("kind")).replace('.',' ')+" · "+a.localDate(e.optString("createdAt"))+"\n"+message,14);}}
     void more(JSONObject d,String key){if(d.isNull("nextCursor")||d.optString("nextCursor").isEmpty())return;
         a.button(a.t("Next page"),"market-next",()->{String path=state.optString("path").replaceAll("[?&]after=[^&]*","");load(view(),path+(path.contains("?")?"&":"?")+"after="+d.optString("nextCursor"));});
     }

@@ -33,7 +33,7 @@ export async function assessmentRoute(request,env,user,path){
   try{
     const object=await env.ACCOUNT_BUCKET.get(file.object_key);if(!object)fail('Photo unavailable.',503);
     const bytes=new Uint8Array(await new Response(object.body).arrayBuffer());
-    const result=await assessPhoto(bytes,file.mime_type,scope,{...env,GEMINI_HEDGE_MS:0},env.ASSESSMENT_TRANSPORT||fetch);
+    const result=await assessPhoto(bytes,file.mime_type,scope,{...env,GEMINI_HEDGE_MS:0,ASSESSMENT_LANGUAGE:user.language},env.ASSESSMENT_TRANSPORT||fetch);
     await env.DB.prepare("UPDATE account_assessments SET state='ready',result_json=? WHERE id=? AND actor_id=?").bind(JSON.stringify(result),assessmentId,user.id).run();
     return json({id:assessmentId,state:'ready',result,cached:false});
   }catch(error){await env.DB.prepare("UPDATE account_assessments SET state='failed' WHERE id=? AND actor_id=?").bind(assessmentId,user.id).run();throw error;}

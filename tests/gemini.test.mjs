@@ -9,6 +9,14 @@ import worker from '../server/worker.js';
 import {localBindings} from '../scripts/local-backend.mjs';
 const answer={status:'identified',items:[{code:'B01',evidence:'Keyboard and screen',approximateCount:1}],description:'Computer',uncertainty:'Function not tested',nextPhoto:''};
 const lot={status:'mixed_lot',items:[{code:'B01',evidence:'Laptop',approximateCount:2},{code:'B02',evidence:'Phone',approximateCount:null}],description:'Mixed lot',uncertainty:'Counts approximate',nextPhoto:''};
+test('identification requests local-language explanations while preserving canonical category codes',async()=>{
+ for(const [language,name] of [['hi','Hindi'],['mr','Marathi'],['invalid','English']]){
+  const result=await assessPhoto(new Uint8Array([255,216,255]),'image/jpeg','broad',{GEMINI_API_KEY:'test',GEMINI_MODEL:'test',ASSESSMENT_LANGUAGE:language,GEMINI_HEDGE_MS:0},async(url,options)=>{
+   const body=JSON.parse(options.body);assert.ok(body.contents[0].parts[0].text.includes('Give concise '+name+' evidence'));assert.ok(body.generationConfig.responseJsonSchema.properties.items.items.properties.code.enum.includes('B01'));
+   return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(answer)}]}}]});
+  });assert.equal(result.items[0].code,'B01');
+ }
+});
 test('catalog counts and provider schema enforce scope, no key in URL, no invented scores',async()=>{
  assert.equal(choices('broad').length,20);assert.equal(choices('detailed').length,106);
  let called=0;

@@ -73,6 +73,7 @@ public class AccountActivity extends AppCompatActivity {
     String token(){return session==null?"":session.optString("token");}
     String language(){return session==null?selectedLanguage:session.optJSONObject("user").optString("language","en");}
     String t(String source){return Translations.text(this,language(),source);}
+    String f(String pattern,Object... values){return String.format(java.util.Locale.forLanguageTag(language()+"-IN"),t(pattern),values);}
     String localDate(String value){return Translations.date(language(),value);}
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     LinearLayout column(){LinearLayout value=new LinearLayout(this);value.setOrientation(LinearLayout.VERTICAL);return value;}
@@ -88,7 +89,8 @@ public class AccountActivity extends AppCompatActivity {
         return input;
     }
     void choices(String title,String[] names,int selected,IntConsumer changed){
-        label(title,14);Spinner spinner=new Spinner(this);ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names);spinner.setAdapter(adapter);spinner.setSelection(selected);page.addView(spinner);
+        String[] localized=new String[names.length];for(int i=0;i<names.length;i++)localized[i]=t(names[i]);
+        label(title,14);Spinner spinner=new Spinner(this);ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,localized);spinner.setAdapter(adapter);spinner.setSelection(selected);page.addView(spinner);
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> p,View v,int position,long id){changed.accept(position);}public void onNothingSelected(AdapterView<?> p){}});
     }
     void render(){
@@ -179,7 +181,7 @@ public class AccountActivity extends AppCompatActivity {
         field(t("Lot name"),draft.optString("title"),"account-lot-title",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"title",v));
         field(t("Collection area"),draft.optString("locality"),"account-lot-area",InputType.TYPE_CLASS_TEXT,120,v->saveField(draft,"locality",v));
         JSONArray lines=draft.getJSONArray("items");itemIndex=Math.max(0,Math.min(itemIndex,lines.length()-1));
-        label(t("Material line ")+(itemIndex+1)+" of "+lines.length(),18);
+        label(t("Material line ")+(itemIndex+1)+t(" of ")+lines.length(),18);
         if(lines.length()>1)button(t("Next material line"),"account-next-line",()->{itemIndex=(itemIndex+1)%lines.length();render();});
         if(lines.length()<20)button(t("Add another material"),"account-add-line",()->{try{JSONObject next=new JSONObject().put("id",UUID.randomUUID().toString()).put("broadCode",JSONObject.NULL).put("detailedCode",JSONObject.NULL).put("description","").put("condition","unknown").put("unit","kg").put("quantity","").put("reviewState","needs_review");lines.put(next);store.save(account(),draft);itemIndex=lines.length()-1;render();}catch(Exception e){showError(e);}});
         JSONObject item=lines.getJSONObject(itemIndex);
@@ -197,7 +199,7 @@ public class AccountActivity extends AppCompatActivity {
             }catch(Exception e){showError(e);}
         });
         button(t("Upload photo"),"account-choose-photo",()->gallery.launch(new String[]{"image/*"}));
-        JSONArray photos=draft.getJSONArray("fileIds");label(photos.length()+" photo(s)",14);
+        JSONArray photos=draft.getJSONArray("fileIds");label(photos.length()+t(" photo(s)"),14);
         if(photos.length()>0)button(t("Identify a photo with Gemini"),"account-identify",()->market.identify(draft,null));
         for(int i=0;i<photos.length();i++){
             String photo=photos.getString(i);File file=store.photo(account(),photo);
@@ -277,7 +279,7 @@ public class AccountActivity extends AppCompatActivity {
         String owner=account(),auth=token(),lotId=draft.optString("id");
         task(()->api.request("GET","/lots/"+lotId,auth,null),result->{
             JSONObject remote=result.optJSONObject("lot");
-            new AlertDialog.Builder(this).setTitle(t("Draft changed on another device")).setMessage(t("Online: ")+remote.optString("title")+"\n"+remote.optString("locality")+"\n"+remote.optString("notes")+"\n\nKeep your local changes as a separate draft and restore the updated online copy alongside it.")
+            new AlertDialog.Builder(this).setTitle(t("Draft changed on another device")).setMessage(t("Online: ")+remote.optString("title")+"\n"+remote.optString("locality")+"\n"+remote.optString("notes")+t("\n\nKeep your local changes as a separate draft and restore the updated online copy alongside it."))
                 .setPositiveButton(t("Keep a separate copy"),(d,w)->{try{JSONObject copy=new JSONObject(draft.toString());copy.put("id",UUID.randomUUID().toString());copy.remove("serverVersion");copy.remove("localRevision");copy.remove("syncState");store.save(owner,copy);store.replaceFromServer(owner,remote);draft=copy;render();}catch(Exception e){showError(e);}})
                 .setNeutralButton(t("Keep reviewing"),null).show();
         });
@@ -299,6 +301,6 @@ public class AccountActivity extends AppCompatActivity {
                 if(error instanceof AccountApi.Failure&&((AccountApi.Failure)error).status==401&&session!=null){try{vault.clear();}catch(Exception ignored){}session=null;draft=null;epoch++;}
                 render();showError(error);});}});
     }
-    String message(Throwable error){return error.getMessage()==null?t("Please try again."):error.getMessage();}
-    void showError(Throwable error){if(!isFinishing())new AlertDialog.Builder(this).setTitle(t("Could not complete this action")).setMessage(message(error)).setPositiveButton("OK",null).show();}
+    String message(Throwable error){return error.getMessage()==null?t("Please try again."):Translations.error(this,language(),error.getMessage());}
+    void showError(Throwable error){if(isFinishing())return;String detail=error.getMessage(),localized=message(error);android.app.AlertDialog.Builder dialog=new AlertDialog.Builder(this).setTitle(t("Could not complete this action")).setMessage(localized).setPositiveButton(t("OK"),null);if(detail!=null&&!detail.equals(localized))dialog.setNeutralButton(t("Technical details"),(d,w)->new AlertDialog.Builder(this).setTitle(t("Technical details")).setMessage(detail).setPositiveButton(t("OK"),null).show());dialog.show();}
 }

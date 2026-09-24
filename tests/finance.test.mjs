@@ -63,6 +63,25 @@ test('ERP, earnings and notifications use the same ledger and isolate personal i
   const notifications=await f.ok(f.c,'/notifications');assert.ok(notifications.unread>0);const n=notifications.notifications[0];await f.ok(f.r,'/notifications/'+n.id+'/read','POST',{});assert.equal((await f.ok(f.c,'/notifications')).unread,notifications.unread);await f.ok(f.c,'/notifications/'+n.id+'/read','POST',{});assert.equal((await f.ok(f.c,'/notifications')).unread,notifications.unread-1);
   const csv=await f.ops('/export');assert.equal(csv.status,200);assert.match(await csv.text(),/Partially settled/);
 });
+test('ERP attention queues and recycler/state filters drill into the same pending transfers',async t=>{
+  const f=await finance(t);await f.received();const inv=await f.invoice();await f.approve(inv);await f.payment(inv,'2500');
+  const d=await f.okOps('/analytics?queue=confirmations&recycler='+f.r.id+'&state=accepted');
+  assert.equal(d.totals.total,1);assert.equal(d.attention.confirmations,1);assert.equal(d.orders[0].id,f.order);assert.equal(d.requests.find(x=>x.state==='accepted').count,1);assert.equal(d.categories[0].code,'B01');
+  const noInvoices=await f.okOps('/analytics?queue=invoices');assert.equal(noInvoices.totals.total,0);assert.equal(noInvoices.attention.confirmations,1);
+  assert.equal((await f.okOps('/analytics?state=cancelled')).totals.total,0);
+  const other=await f.user('recycler');assert.equal((await f.okOps('/analytics?recycler='+other.id)).totals.total,0);
+  assert.equal((await f.ops('/analytics?queue=invalid')).status,400);
+  const csv=await (await f.ops('/export?queue=invoices')).text();assert.ok(!csv.includes(f.order));
+});
+test('notification cursors retain same-time events once and stay isolated between accounts',async t=>{
+  const f=await finance(t),time='2025-01-01T00:00:00.000Z';
+  await f.env.DB.prepare('DELETE FROM notifications WHERE user_id=?').bind(f.c.id).run();
+  for(let i=0;i<103;i++)await f.env.DB.prepare('INSERT INTO notifications(id,user_id,kind,resource_id,title,body,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),f.c.id,'finance.invoice',f.order,'Invoice update','Open order',time).run();
+  const first=await f.ok(f.c,'/notifications');assert.equal(first.notifications.length,100);assert.equal(first.unread,103);
+  const second=await f.ok(f.c,'/notifications?before='+encodeURIComponent(first.nextCursor));assert.equal(second.notifications.length,3);assert.equal(second.nextCursor,null);
+  assert.equal(new Set([...first.notifications,...second.notifications].map(n=>n.id)).size,103);
+  assert.ok((await f.ok(f.r,'/notifications?before='+encodeURIComponent(first.nextCursor))).notifications.every(n=>n.user_id===f.r.id));
+});
 test('an explained actual transfer during a custody dispute never closes the dispute',async t=>{
   const f=await finance(t);await f.received();const inv=await f.invoice();await f.approve(inv);await f.act(f.c,'issue',{message:'Inspection damage needs review'});
   const p=await f.payment(inv,'2000',{exceptionReason:'Actual advance transferred while damage is being reviewed'});await f.cmd(f.c,'payment-review',{paymentId:p.paymentId,decision:'confirm',message:'Advance received; damage dispute remains open'});

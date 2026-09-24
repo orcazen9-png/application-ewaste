@@ -318,3 +318,133 @@ Open your request to review the latest update.	नवीनतम अपडे�
 Open your order to review the latest update.	नवीनतम अपडेट के लिए ऑर्डर खोलें।	नवीनतम अद्यतनासाठी ऑर्डर उघडा.
 
 Demo access only. Facility verification is pending.	केवल डेमो की अनुमति। सुविधा का सत्यापन बाकी है।	फक्त डेमोसाठी प्रवेश. केंद्राची पडताळणी बाकी आहे.
+
+Computers and laptops	कंप्यूटर और लैपटॉप	संगणक आणि लॅपटॉप
+Mobile phones and tablets	मोबाइल फ़ोन और टैबलेट	मोबाइल फोन आणि टॅबलेट
+Printers and office machines	प्रिंटर और कार्यालय की मशीनें	प्रिंटर आणि कार्यालयीन यंत्रे
+Telephones and networking equipment	टेलीफ़ोन और नेटवर्क उपकरण	दूरध्वनी आणि नेटवर्क उपकरणे
+UPS and inverters	UPS और इन्वर्टर	UPS आणि इन्व्हर्टर
+Data storage devices	डेटा भंडारण उपकरण	डेटा साठवण उपकरणे
+TVs, monitors and displays	टीवी, मॉनिटर और डिस्प्ले	टीव्ही, मॉनिटर आणि डिस्प्ले
+Audio, video and cameras	ऑडियो, वीडियो और कैमरे	ऑडिओ, व्हिडिओ आणि कॅमेरे
+Fridges, freezers and air conditioners	फ़्रिज, फ़्रीज़र और एयर कंडीशनर	फ्रिज, फ्रीझर आणि वातानुकूलक
+Washing, drying and cleaning machines	धोने, सुखाने और सफ़ाई की मशीनें	धुणे, वाळवणे आणि स्वच्छतेची यंत्रे
+Kitchen and food appliances	रसोई और खाद्य संबंधी उपकरण	स्वयंपाकघर आणि अन्नाशी संबंधित उपकरणे
+Fans, heaters and air purifiers	पंखे, हीटर और वायु शोधक	पंखे, हीटर आणि हवा शुद्ध करणारी उपकरणे
+Clothing-care and personal-care appliances	कपड़ों और व्यक्तिगत देखभाल के उपकरण	कपड्यांची आणि वैयक्तिक निगा राखणारी उपकरणे
+Lamps and lighting equipment	लैंप और प्रकाश उपकरण	दिवे आणि प्रकाशयोजना उपकरणे
+Solar panels and cells	सौर पैनल और सेल	सौर पॅनेल आणि सेल
+Power tools and workshop equipment	बिजली के औज़ार और कार्यशाला उपकरण	विजेची साधने आणि कार्यशाळेतील उपकरणे
+Toys, games and sports electronics	खिलौने, खेल और खेलकूद इलेक्ट्रॉनिक्स	खेळणी, खेळ आणि क्रीडा इलेक्ट्रॉनिक्स
+Vending and dispensing machines	स्वचालित बिक्री और वितरण मशीनें	स्वयंचलित विक्री आणि वितरण यंत्रे
+Sensors, controls and laboratory instruments	सेंसर, नियंत्रक और प्रयोगशाला उपकरण	सेन्सर, नियंत्रक आणि प्रयोगशाळा उपकरणे
+Medical equipment	चिकित्सा उपकरण	वैद्यकीय उपकरणे
+kg	किलो	किलो
+piece	नग	नग
+unknown	अज्ञात	अज्ञात
+unsorted	बिना छँटाई	वर्गीकरण न केलेले
+sorted	छँटाई की हुई	वर्गीकरण केलेले
+damaged	क्षतिग्रस्त	नुकसान झालेले
+active	सक्रिय	सक्रिय
+paused	रुका हुआ	थांबवलेले
+expired	समय समाप्त	मुदत संपलेली
+verified	सत्यापित	पडताळलेले
+unverified	सत्यापन बाकी	पडताळणी बाकी
+pending	लंबित	प्रलंबित
+confirmed	पुष्टि की गई	पुष्टी झाली
+submitted	प्रस्तुत	सादर केलेले
+accepted	स्वीकृत	स्वीकारलेले
+cancelled	रद्द	रद्द
+disputed	विवादित	विवादित
+acknowledged	सहमति दर्ज	सहमती नोंदवली
+reversed	वापसी दर्ज	उलट नोंद केलेली
+rejected	अस्वीकृत	नाकारलेले
+withdrawn	वापस लिया गया	मागे घेतलेले
+clarification	स्पष्टीकरण	स्पष्टीकरण
+material	सामग्री	माल
+logistics	ढुलाई	वाहतूक
+bank_transfer	बैंक ट्रांसफ़र	बँक हस्तांतरण
+upi	UPI	UPI
+cash	नकद	रोख
+cheque	चेक	धनादेश
+other	अन्य	इतर
+pickup	उठान	माल उचलणे
+dropoff	स्वयं पहुँचाना	स्वतः पोहोचवणे
+estimate	अनुमान	अंदाज
+final	अंतिम	अंतिम
+accept	स्वीकारें	स्वीकारा
+reject	अस्वीकारें	नाकारा
+confirm	पुष्टि करें	पुष्टी करा
+dispute	विवाद दर्ज करें	विवाद नोंदवा
+reversal_requested	वापसी का अनुरोध	उलट नोंदीची विनंती
+reversal_accepted	वापसी स्वीकृत	उलट नोंद मान्य
+reversal_rejected	वापसी अस्वीकृत	उलट नोंद अमान्य
+not_arranged	व्यवस्था बाकी	व्यवस्था बाकी
+scheduled	समय तय	वेळ ठरलेली
+picked_up	माल उठाया गया	माल उचलला
+in_transit	रास्ते में	प्रवासात
+received	माल प्राप्त	माल मिळाला
+return_pending	वापसी लंबित	परतावा प्रलंबित
+returned	वापस किया गया	परत केलेले
+open	खुला	खुले
+resolved	समाधान हो गया	निराकरण झाले
+Not recorded	दर्ज नहीं	नोंद नाही
+Awaiting collector confirmation	कलेक्टर की पुष्टि बाकी	संकलकाची पुष्टी बाकी
+Invoice review required	इनवॉइस की समीक्षा ज़रूरी	चलनाचे पुनरावलोकन आवश्यक
+Overpayment to review	अतिरिक्त भुगतान की समीक्षा करें	अधिक दिलेल्या रकमेचे पुनरावलोकन करा
+Settled	निपटान पूरा	हिशोब पूर्ण
+Partially settled	आंशिक निपटान	अंशतः हिशोब पूर्ण
+Disputed	विवादित	विवादित
+\n\nKeep your local changes as a separate draft and restore the updated online copy alongside it.	\n\nफ़ोन के बदलाव अलग ड्राफ़्ट में रखें और नया ऑनलाइन संस्करण भी बहाल करें।	\n\nफोनवरील बदल स्वतंत्र मसुद्यात ठेवा आणि अद्ययावत ऑनलाइन प्रतही पुनर्संचयित करा.
+\nAcceptance records quantity only. Missing goods still require custody review; it does not confirm payment.	\nस्वीकृति केवल मात्रा दर्ज करती है। गायब माल की सुपुर्दगी की समीक्षा अभी भी ज़रूरी है; इससे भुगतान की पुष्टि नहीं होती।	\nस्वीकृती फक्त प्रमाण नोंदवते. गहाळ मालाच्या ताब्याचे पुनरावलोकन आवश्यक आहे; यामुळे देयकाची पुष्टी होत नाही.
+\nAccepted receipt:\s	\nस्वीकृत प्राप्ति:\s	\nमान्य प्राप्ती:\s
+\nApproved invoices ₹	\nस्वीकृत इनवॉइस ₹	\nमंजूर चलने ₹
+\nConfirmed ₹	\nपुष्टि की गई ₹	\nपुष्टी झालेली ₹
+\nFinal invoice is still required.	\nअंतिम इनवॉइस अभी भी ज़रूरी है।	\nअंतिम चलन अद्याप आवश्यक आहे.
+\nOutstanding ₹	\nबाकी ₹	\nबाकी ₹
+ and share the selected photos. This records custody evidence, not a payment.	 और चुनी हुई तस्वीरें साझा करें। यह माल की सुपुर्दगी का प्रमाण दर्ज करता है, भुगतान नहीं।	 आणि निवडलेले फोटो शेअर करा. यामुळे मालाच्या ताब्याचा पुरावा नोंदवला जातो, देयक नाही.
+ evidence photo(s)	 प्रमाण की तस्वीरें	 पुराव्याचे फोटो
+ for material and reserve the requested quantity. You cover logistics separately. Price can still be revised by agreement.	 सामग्री के लिए दें और अनुरोधित मात्रा आरक्षित करें। ढुलाई का खर्च अलग से आपका है। सहमति से कीमत बदल सकती है।	 मालासाठी द्या आणि मागितलेले प्रमाण आरक्षित करा. वाहतुकीचा खर्च तुम्ही स्वतंत्रपणे देता. सहमतीने किंमत बदलता येते.
+ logistics?	 की ढुलाई स्वीकारें?	 वाहतूक मान्य करायची?
+ of\s	 /\s	 /\s
+ photo(s)	 तस्वीरें	 फोटो
+ to\s	 से\s	 ते\s
+ unread	 अपठित	 न वाचलेल्या
+ · New	 · नया	 · नवीन
+ · Overpaid ₹	 · अतिरिक्त भुगतान ₹	 · अधिक दिलेले ₹
+ · Payment:\s	 · भुगतान:\s	 · देयक:\s
+ · Pending ₹	 · लंबित ₹	 · प्रलंबित ₹
+ · Remaining\s	 · शेष\s	 · शिल्लक\s
+ · Until\s	 · वैधता\s	 · वैधता\s
+ · revision\s	 · संशोधन\s	 · आवृत्ती\s
+Correction: earlier evidence remains in the activity history.\n	सुधार: पहले का प्रमाण गतिविधि इतिहास में सुरक्षित है।\n	दुरुस्ती: आधीचा पुरावा घडामोडींच्या इतिहासात जतन आहे.\n
+Freedom Value — external payment acknowledgment\nOrder:\s	Freedom Value — बाहरी भुगतान की पावती\nऑर्डर:\s	Freedom Value — बाह्य देयकाची पोच\nऑर्डर:\s
+\nAmount: ₹	\nराशि: ₹	\nरक्कम: ₹
+\nAccount:\s	\nखाता:\s	\nखाते:\s
+\nDate:\s	\nतारीख:\s	\nदिनांक:\s
+\nReference:\s	\nसंदर्भ:\s	\nसंदर्भ:\s
+\nConfirmed in the platform. This is a payment acknowledgment, not a tax invoice.	\nप्लेटफ़ॉर्म पर पुष्टि दर्ज है। यह भुगतान की पावती है, कर इनवॉइस नहीं।	\nप्लॅटफॉर्मवर पुष्टी नोंदवली आहे. ही देयकाची पोच आहे, करचलन नाही.
+Older notifications	पुरानी सूचनाएँ	जुन्या सूचना
+Latest notifications	नई सूचनाएँ	नवीनतम सूचना
+Open the order to review this update.	इस बदलाव की समीक्षा के लिए ऑर्डर खोलें।	या बदलाचे पुनरावलोकन करण्यासाठी ऑर्डर उघडा.
+Your earlier records remain available below.	आपके पुराने रिकॉर्ड नीचे उपलब्ध हैं।	तुमच्या जुन्या नोंदी खाली उपलब्ध आहेत.
+proposed	प्रस्तावित	प्रस्तावित
+Not arranged	व्यवस्था बाकी	व्यवस्था बाकी
+Recycler pays logistics separately.	रिसाइकलर ढुलाई का भुगतान अलग से करता है।	पुनर्चक्रणकर्ता वाहतुकीचे पैसे स्वतंत्रपणे देतो.
+invoice	इनवॉइस	चलन
+invoice-review	इनवॉइस की समीक्षा	चलनाचे पुनरावलोकन
+payment	भुगतान	देयक
+payment-review	भुगतान की समीक्षा	देयकाचे पुनरावलोकन
+reversal-request	वापसी का अनुरोध	उलट नोंदीची विनंती
+reversal-review	वापसी की समीक्षा	उलट नोंदीचे पुनरावलोकन
+receipt	प्राप्ति	प्राप्ती
+schedule-change	समय बदलने का अनुरोध	वेळ बदलण्याची विनंती
+confirm-return	वापसी की पुष्टि	परताव्याची पुष्टी
+accept-receipt	प्राप्त मात्रा की स्वीकृति	मिळालेल्या प्रमाणाची स्वीकृती
+cost	ढुलाई शुल्क	वाहतूक शुल्क
+acknowledge-cost	ढुलाई शुल्क पर सहमति	वाहतूक शुल्काला सहमती
+issue	समस्या	समस्या
+schedule	उठान का समय	माल उचलण्याची वेळ
+reschedule	उठान का नया समय	माल उचलण्याची नवीन वेळ
+transit	माल रास्ते में	माल प्रवासात
+category.confirmed	विस्तृत श्रेणी की पुष्टि	तपशीलवार वर्गवारीची पुष्टी
