@@ -6,6 +6,7 @@ export const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status, headers: {'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'},
 });
 export const now = () => new Date().toISOString();
+export const indiaToday = () => new Date(Date.now()+19800000).toISOString().slice(0,10);
 export const id = () => crypto.randomUUID();
 export const validId = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value);
 export function requireId(value) { if (!validId(value)) fail('Invalid record reference.'); return value; }

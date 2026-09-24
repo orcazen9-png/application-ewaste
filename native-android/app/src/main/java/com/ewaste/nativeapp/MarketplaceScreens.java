@@ -92,7 +92,7 @@ final class MarketplaceScreens {
     }
     void newRequirement(){catalogue(()->{JSONObject draft=new JSONObject();put(draft,"id",UUID.randomUUID().toString());put(draft,"version",0);put(draft,"unit","kg");put(draft,"state","paused");put(draft,"minimum","1");put(draft,"broadCode","B01");put(draft,"validUntil",LocalDate.now().plusDays(30).toString());put(draft,"areas",new JSONArray().put(a.session.optJSONObject("user").optString("locality")));put(draft,"modes",new JSONArray().put("pickup"));show("requirement",draft);});}
     void portfolio(JSONObject d)throws Exception{
-        a.label(a.t("Buying requirements"),23);a.label(a.t("Prepare your portfolio here. Facility verification is required to publish it."),15);
+        a.label(a.t("Buying requirements"),23);a.label(a.t(d.optBoolean("demoAccess")?"Demo access only. Facility verification is pending.":"Prepare your portfolio here. Facility verification is required to publish it."),15);
         a.button(a.t("Add requirement"),"market-add-requirement",this::newRequirement);
         JSONArray list=d.optJSONArray("requirements");if(list==null||list.length()==0)a.label(a.t("No requirements loaded. Add one or refresh when online."),16);
         if(list!=null)for(int i=0;i<list.length();i++){
@@ -134,7 +134,7 @@ final class MarketplaceScreens {
         new AlertDialog.Builder(a).setTitle(a.t("Confirm equipment category")).setItems(labels,(d,position)->{try{choose.choose(allowAny&&position==0?null:all.getJSONObject(position-(allowAny?1:0)).getString("code"));}catch(Exception e){a.showError(e);}}).setNegativeButton(a.t("Back"),null).show();
     }catch(Exception e){a.showError(e);}});}
     void requirementSummary(JSONObject r){
-        a.label(r.optString("recyclerName")+" · "+r.optString("verificationStatus"),14);
+        a.label(r.optString("recyclerName")+" · "+(r.optBoolean("demoAccess")?a.t("Demo access only. Facility verification is pending."):a.t(r.optString("verificationStatus"))),14);
         a.label("₹"+r.optString("rate")+" / "+r.optString("unit")+" · "+r.optString("state"),17);
         a.label(a.t("Minimum ")+r.optString("minimum")+" · Remaining "+(r.isNull("remaining")?a.t("Unlimited"):r.optString("remaining"))+" "+r.optString("unit"),14);
         a.label(a.t("Areas: ")+join(r.optJSONArray("areas"),", ")+" · Until "+r.optString("validUntil"),14);

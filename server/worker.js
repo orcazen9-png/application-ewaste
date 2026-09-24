@@ -87,6 +87,7 @@ export default {async fetch(request,env){
   if(!env.ACCOUNT_BUCKET&&env.ACCOUNT_STORAGE==='d1'&&env.DB)env={...env,ACCOUNT_BUCKET:privateD1Bucket(env.DB)};
   if(!env.BUCKET&&env.DB)env={...env,BUCKET:d1Bucket(env.DB)};
   const url=new URL(request.url),origin=request.headers.get('Origin');
+  if(env.ACCOUNTS_ENABLED==='true'&&url.pathname==='/')return Response.redirect(url.origin+'/operations.html',302);
   const allowed=origin===url.origin||['https://localhost','capacitor://localhost','http://localhost'].includes(origin)||(env.LOCAL_DEMO&&/^http:\/\/127\.0\.0\.1:\d+$/.test(origin||''));
   const cors=allowed?{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Allow-Methods':'GET, POST, PUT, OPTIONS','Vary':'Origin'}:{};
   if(request.method==='OPTIONS')return new Response(null,{status:allowed?204:403,headers:cors});

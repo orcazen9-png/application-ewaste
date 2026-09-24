@@ -10,6 +10,12 @@ if(!['collector','recycler','operations','finance','operations_finance','viewer'
 const personal=['collector','recycler'].includes(role),uid=existing?.split(':')[1]||randomUUID(),actor=(personal?'user:':'staff:')+uid;
 if(existing&&(existing!==actor||!/^[a-f0-9-]{36}$/.test(uid)))throw new Error('Invalid existing actor.');
 const quote=v=>"'"+String(v).replaceAll("'","''")+"'",time=new Date().toISOString(),expiry=new Date(Date.now()+7*86400000).toISOString(),code='ewi_'+randomBytes(32).toString('hex'),digest=createHash('sha256').update(code).digest('hex');
+if(existing){
+  const query=`SELECT id FROM ${personal?'users':'operations_staff'} WHERE id=${quote(uid)} AND role=${quote(role)} AND status='active'`;
+  const check=spawnSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','ewaste-accounts-demo','--remote','--config','wrangler.accounts.toml','--command',query,'--json'],{encoding:'utf8'});
+  if(check.status!==0)throw new Error('Unable to validate the existing identity. No sessions were revoked.');
+  const result=JSON.parse(check.stdout);if(!result.some(r=>r.results?.some(row=>row.id===uid)))throw new Error('Existing identity is unavailable or has a different role. No sessions were revoked.');
+}
 const sql=[];
 if(!existing){
   if(personal){sql.push(`INSERT INTO users(id,mobile,role,display_name,locality,created_at,updated_at) VALUES(${quote(uid)},${quote('invited:'+uid)},${quote(role)},${quote(name)},${quote(args.locality||'')},${quote(time)},${quote(time)});`);

@@ -21,7 +21,7 @@ Any within broad category	मुख्य श्रेणी में कोई
 Approve invoice	चालान स्वीकृत करें	चलन मंजूर करा
 Approved ₹	स्वीकृत ₹	मंजूर ₹
 Area	क्षेत्र	परिसर
-Areas: 	क्षेत्र: 	परिसर: 
+Areas: 	क्षेत्र: 	परिसर:\s
 Ask or reply to clarification	स्पष्टीकरण पूछें या उत्तर दें	स्पष्टीकरण विचारा किंवा उत्तर द्या
 Assess shared photo with Gemini	साझा फोटो को Gemini से पहचानें	शेअर केलेला फोटो Gemini द्वारे ओळखा
 Availability	उपलब्धता	उपलब्धता
@@ -78,9 +78,9 @@ Could not read this photo.	यह फोटो पढ़ा नहीं जा 
 Could not save document.	दस्तावेज़ सहेजा नहीं जा सका।	दस्तऐवज जतन झाला नाही.
 Could not save photo.	फोटो सहेजा नहीं जा सका।	फोटो जतन झाला नाही.
 Delivery issue	डिलीवरी की समस्या	वितरणाची समस्या
-Delivery: 	डिलीवरी: 	वितरण: 
-Detailed category confirmed: 	पुष्ट विस्तृत श्रेणी: 	पुष्टी केलेली तपशीलवार श्रेणी: 
-Detailed category: 	विस्तृत श्रेणी: 	तपशीलवार श्रेणी: 
+Delivery: 	डिलीवरी: 	वितरण:\s
+Detailed category confirmed: 	पुष्ट विस्तृत श्रेणी: 	पुष्टी केलेली तपशीलवार श्रेणी:\s
+Detailed category: 	विस्तृत श्रेणी: 	तपशीलवार श्रेणी:\s
 Dispute invoice	चालान पर आपत्ति करें	चलनावर आक्षेप नोंदवा
 Dispute payment	भुगतान पर आपत्ति करें	देयकावर आक्षेप नोंदवा
 Document could not be opened.	दस्तावेज़ खोला नहीं जा सका।	दस्तऐवज उघडता आला नाही.
@@ -96,9 +96,9 @@ Evidence & activity	साक्ष्य और गतिविधि	पुर
 Evidence draft was not found.	साक्ष्य का मसौदा नहीं मिला।	पुराव्याचा मसुदा सापडला नाही.
 Evidence is shared with this order's collector, recycler and Freedom Value operations. Location below is entered manually.	साक्ष्य इस ऑर्डर के संग्राहक, रीसाइकलर और Freedom Value संचालन से साझा होता है। नीचे स्थान स्वयं दर्ज किया गया है।	पुरावा या ऑर्डरच्या संकलक, रीसायकलर आणि Freedom Value संचालनासोबत शेअर होतो. खालील ठिकाण स्वतः भरलेले आहे.
 Evidence photo	साक्ष्य फोटो	पुराव्याचा फोटो
-Evidence photo 	साक्ष्य फोटो 	पुराव्याचा फोटो 
+Evidence photo 	साक्ष्य फोटो 	पुराव्याचा फोटो\s
 Evidence time	साक्ष्य का समय	पुराव्याची वेळ
-Evidence time: 	साक्ष्य का समय: 	पुराव्याची वेळ: 
+Evidence time: 	साक्ष्य का समय: 	पुराव्याची वेळ:\s
 Explain the receipt dispute	प्राप्ति पर आपत्ति समझाएँ	प्राप्तीवरील आक्षेप स्पष्ट करा
 Find matches	मेल खोजें	जुळणारे पर्याय शोधा
 Find recycler requirements for this line	इस सामग्री के लिए रीसाइकलर की आवश्यकता खोजें	या साहित्यासाठी रीसायकलरची गरज शोधा
@@ -123,7 +123,7 @@ Issues & review	समस्याएँ और समीक्षा	समस�
 Keep a separate copy	अलग प्रति रखें	वेगळी प्रत ठेवा
 Keep manual selection	अपना चयन रखें	स्वतःची निवड ठेवा
 Keep reviewing	समीक्षा जारी रखें	पुनरावलोकन सुरू ठेवा
-Last checked: 	अंतिम जाँच: 	शेवटची तपासणी: 
+Last checked: 	अंतिम जाँच: 	शेवटची तपासणी:\s
 Local collector	स्थानीय संग्राहक	स्थानिक संकलक
 Location (manual)	स्थान (स्वयं दर्ज)	ठिकाण (स्वतः भरलेले)
 Logistics account	परिवहन खाता	वाहतूक खाते
@@ -134,12 +134,12 @@ Logistics payee receipt reference	परिवहन प्राप्तकर
 Matching requirements	मेल खाती खरीद आवश्यकताएँ	जुळणाऱ्या खरेदीच्या गरजा
 Material account	सामग्री खाता	साहित्य खाते
 Material amount ₹	सामग्री राशि ₹	साहित्य रक्कम ₹
-Material line 	सामग्री पंक्ति 	साहित्य ओळ 
+Material line 	सामग्री पंक्ति 	साहित्य ओळ\s
 Material or equipment	सामग्री या उपकरण	साहित्य किंवा उपकरण
 Material payments	सामग्री के भुगतान	साहित्याची देयके
 Material proceeds for the collector	संग्राहक की सामग्री राशि	संकलकाची साहित्य रक्कम
 Material: ₹	सामग्री: ₹	साहित्य: ₹
-Minimum 	न्यूनतम 	किमान 
+Minimum 	न्यूनतम 	किमान\s
 Minimum quantity per request	प्रति अनुरोध न्यूनतम मात्रा	प्रत्येक विनंतीचे किमान प्रमाण
 Missing photo explanation	फोटो न होने का कारण	फोटो नसण्याचे कारण
 Mobile number	मोबाइल नंबर	मोबाइल क्रमांक
@@ -160,7 +160,7 @@ Open payment proof	भुगतान का साक्ष्य खोले�
 Open request	अनुरोध खोलें	विनंती उघडा
 Open shared order	साझा ऑर्डर खोलें	शेअर केलेली ऑर्डर उघडा
 Operations has not scheduled this order yet.	संचालन टीम ने अभी इस ऑर्डर का समय तय नहीं किया है।	संचालन पथकाने अद्याप या ऑर्डरची वेळ ठरवलेली नाही.
-Order 	ऑर्डर 	ऑर्डर 
+Order 	ऑर्डर 	ऑर्डर\s
 Order participant	ऑर्डर का पक्ष	ऑर्डरमधील पक्ष
 Order updated since this draft	इस मसौदे के बाद ऑर्डर बदला गया	या मसुद्यानंतर ऑर्डर बदलली
 Original quoted estimate: ₹	मूल प्रस्तावित अनुमान: ₹	मूळ प्रस्तावित अंदाज: ₹
@@ -178,23 +178,23 @@ Please try again.	फिर प्रयास करें।	पुन्ह�
 Please wait before requesting another code.	नया कोड माँगने से पहले प्रतीक्षा करें।	नवीन कोड मागण्यापूर्वी थांबा.
 Preferred language	पसंदीदा भाषा	पसंतीची भाषा
 Prepare your portfolio here. Facility verification is required to publish it.	यहाँ अपना खरीद पोर्टफोलियो तैयार करें। प्रकाशित करने के लिए केंद्र का सत्यापन आवश्यक है।	येथे खरेदी पोर्टफोलिओ तयार करा. प्रकाशित करण्यासाठी केंद्राची पडताळणी आवश्यक आहे.
-Price revision 	कीमत संशोधन 	किंमत सुधारणा 
+Price revision 	कीमत संशोधन 	किंमत सुधारणा\s
 Propose	प्रस्ताव दें	प्रस्ताव द्या
 Propose price revision	कीमत संशोधन का प्रस्ताव दें	किंमत बदलाचा प्रस्ताव द्या
 Propose revised material price	संशोधित सामग्री कीमत प्रस्तावित करें	साहित्याच्या सुधारित किमतीचा प्रस्ताव द्या
 Quantity to offer (	प्रस्तावित मात्रा (	देऊ केलेले प्रमाण (
-Quantity: 	मात्रा: 	प्रमाण: 
+Quantity: 	मात्रा: 	प्रमाण:\s
 Quote and quantity unit	कीमत और मात्रा की इकाई	दर आणि प्रमाणाचे एकक
 Quoted material estimate: ₹	प्रस्तावित सामग्री अनुमान: ₹	प्रस्तावित साहित्याचा अंदाज: ₹
 Rate in ₹ per selected unit	चुनी हुई इकाई का दर ₹	निवडलेल्या एककाचा दर ₹
 Reason for revision	संशोधन का कारण	दुरुस्तीचे कारण
 Reason for this change	इस बदलाव का कारण	या बदलाचे कारण
 Reason or clarification	कारण या स्पष्टीकरण	कारण किंवा स्पष्टीकरण
-Record 	दर्ज करें 	नोंदवा 
+Record 	दर्ज करें 	नोंदवा\s
 Record handover	हस्तांतरण दर्ज करें	हस्तांतरण नोंदवा
 Record inspection	निरीक्षण दर्ज करें	तपासणी नोंदवा
 Record received quantity	प्राप्त मात्रा दर्ज करें	प्राप्त प्रमाण नोंदवा
-Recorded by 	दर्ज करने वाला 	नोंद करणारे 
+Recorded by 	दर्ज करने वाला 	नोंद करणारे\s
 Recycler account	रीसाइकलर खाता	रीसायकलर खाते
 Recycler acknowledged this charge	रीसाइकलर ने इस शुल्क की पुष्टि की	रीसायकलरने या शुल्काची पुष्टी केली
 Recycler must confirm the detailed equipment code before acceptance.	स्वीकार करने से पहले रीसाइकलर को विस्तृत उपकरण कोड की पुष्टि करनी होगी।	स्वीकारण्यापूर्वी रीसायकलरने तपशीलवार उपकरण कोडची पुष्टी करावी.
@@ -204,16 +204,16 @@ Recycler-paid logistics: ₹	रीसाइकलर का परिवहन 
 Reject request	अनुरोध अस्वीकार करें	विनंती नाकारा
 Reject reversal	सुधार अस्वीकार करें	दुरुस्ती नाकारा
 Reject with reason	कारण के साथ अस्वीकार करें	कारणासह नाकारा
-Remove evidence photo 	साक्ष्य फोटो हटाएँ 	पुराव्याचा फोटो काढा 
+Remove evidence photo 	साक्ष्य फोटो हटाएँ 	पुराव्याचा फोटो काढा\s
 Remove this photo from lot	लॉट से यह फोटो हटाएँ	लॉटमधून हा फोटो काढा
 Report delivery issue	डिलीवरी समस्या दर्ज करें	वितरणाची समस्या नोंदवा
 Request details	अनुरोध विवरण	विनंतीचा तपशील
 Request schedule change	समय बदलने का अनुरोध करें	वेळ बदलण्याची विनंती करा
 Requested pickup change	उठान समय बदलने का अनुरोध	उचलण्याची वेळ बदलण्याची विनंती
-Requested: 	अनुरोधित: 	विनंती केलेले: 
+Requested: 	अनुरोधित: 	विनंती केलेले:\s
 Resend code	कोड फिर भेजें	कोड पुन्हा पाठवा
 Retry pending action	लंबित कार्रवाई फिर करें	प्रलंबित कृतीचा पुन्हा प्रयत्न करा
-Review 	समीक्षा करें 	पुनरावलोकन करा 
+Review 	समीक्षा करें 	पुनरावलोकन करा\s
 Review a suggested category	सुझाई श्रेणी की समीक्षा करें	सुचवलेली श्रेणी तपासा
 Review and share	समीक्षा कर साझा करें	तपासून शेअर करा
 Review and submit evidence	साक्ष्य की समीक्षा कर जमा करें	पुरावा तपासून सादर करा
@@ -268,9 +268,9 @@ Valid through (YYYY-MM-DD)	वैधता की अंतिम तारी�
 Verification code	सत्यापन कोड	पडताळणी कोड
 Verify and sign in	सत्यापित कर साइन इन करें	पडताळून साइन इन करा
 Verify logistics payee receipt	परिवहन प्राप्तकर्ता की रसीद जाँचें	वाहतूक प्राप्तकर्त्याची पावती तपासा
-View evidence photo 	साक्ष्य फोटो देखें 	पुराव्याचा फोटो पाहा 
+View evidence photo 	साक्ष्य फोटो देखें 	पुराव्याचा फोटो पाहा\s
 View record details	रिकॉर्ड विवरण देखें	नोंदीचा तपशील पाहा
-View shared photo 	साझा फोटो देखें 	शेअर केलेला फोटो पाहा 
+View shared photo 	साझा फोटो देखें 	शेअर केलेला फोटो पाहा\s
 View update	अपडेट देखें	अद्यतन पाहा
 Waste category	कचरा श्रेणी	कचऱ्याची श्रेणी
 Window end	समय सीमा का अंत	वेळेची समाप्ती
@@ -280,7 +280,7 @@ You pay this separately from the collector's material amount. This does not reco
 Your earnings	आपकी कमाई	तुमची कमाई
 Your lots	आपके लॉट	तुमचे लॉट
 Your proposed total material amount ₹ (optional)	आपकी प्रस्तावित कुल सामग्री राशि ₹ (वैकल्पिक)	तुमची प्रस्तावित एकूण साहित्य रक्कम ₹ (पर्यायी)
-Your saved drafts are kept. 	आपके सहेजे मसौदे सुरक्षित हैं। 	तुमचे जतन केलेले मसुदे सुरक्षित आहेत. 
+Your saved drafts are kept. 	आपके सहेजे मसौदे सुरक्षित हैं। 	तुमचे जतन केलेले मसुदे सुरक्षित आहेत.\s
 Your saved evidence remains intact. Review the current pickup and receipt details before using this draft against the updated order.	आपका साक्ष्य सुरक्षित है। बदले ऑर्डर में मसौदा उपयोग करने से पहले वर्तमान उठान और प्राप्ति विवरण जाँचें।	तुमचा पुरावा सुरक्षित आहे. बदललेल्या ऑर्डरसाठी मसुदा वापरण्यापूर्वी सध्याचे उचल आणि प्राप्ती तपशील तपासा.
 ＋ Create a lot	＋ लॉट बनाएँ	＋ लॉट तयार करा
 Description	विवरण	वर्णन
@@ -292,9 +292,9 @@ Lot photo	लॉट का फोटो	लॉटचा फोटो
 Name	नाम	नाव
 Note	टिप्पणी	नोंद
 Notes	टिप्पणियाँ	नोंदी
-Online: 	ऑनलाइन: 	ऑनलाइन: 
+Online: 	ऑनलाइन: 	ऑनलाइन:\s
 Orders	ऑर्डर	ऑर्डर
-Photo 	फोटो 	फोटो 
+Photo 	फोटो 	फोटो\s
 Profile	प्रोफ़ाइल	प्रोफाइल
 Quantity	मात्रा	प्रमाण
 Reason	कारण	कारण
@@ -316,3 +316,5 @@ Pickup and receipt update	उठान और प्राप्ति अपड
 Invoice and settlement update	चालान और निपटान अपडेट	चलन आणि हिशेब अद्यतन
 Open your request to review the latest update.	नवीनतम अपडेट के लिए अनुरोध खोलें।	नवीनतम अद्यतनासाठी विनंती उघडा.
 Open your order to review the latest update.	नवीनतम अपडेट के लिए ऑर्डर खोलें।	नवीनतम अद्यतनासाठी ऑर्डर उघडा.
+
+Demo access only. Facility verification is pending.	केवल डेमो की अनुमति। सुविधा का सत्यापन बाकी है।	फक्त डेमोसाठी प्रवेश. केंद्राची पडताळणी बाकी आहे.

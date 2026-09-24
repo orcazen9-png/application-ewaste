@@ -1,5 +1,12 @@
 import {sql} from 'drizzle-orm';
 import {sqliteTable,text,integer,primaryKey,index,check} from 'drizzle-orm/sqlite-core';
+import {facilities} from './account-schema';
+
+// Time-limited sandbox permission; never changes statutory verification status.
+export const demoFacilityAccess=sqliteTable('demo_facility_access',{
+  facilityId:text('facility_id').primaryKey().notNull().references(()=>facilities.id),
+  expiresAt:text('expires_at').notNull(),reason:text('reason').notNull()
+});
 
 // Invitations bind an identity before redemption. Tokens are never stored in plaintext.
 export const invitations=sqliteTable('invitations',{

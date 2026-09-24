@@ -39,15 +39,18 @@ async function commit(env,c,first,result,extras=[]) {
   return json({...result,replayed:false});
 }
 const event=(env,requestId,actor,kind,message)=>(guard,args)=>env.DB.prepare(`INSERT INTO market_events(id,request_id,actor_id,kind,message,created_at) SELECT ?,?,?,?,?,? WHERE ${guard}`).bind(id(),requestId,actor,kind,message,now(),...args);
+const demoGrant="EXISTS(SELECT 1 FROM demo_facility_access d WHERE d.facility_id=f.id AND d.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))";
+const demoAccess=(env,r)=>env.DEMO_MODE==='true'&&!!r.demo_eligible;
+const eligible=(env,r)=>r.verification_status==='verified'||demoAccess(env,r);
 async function facility(env,user){
-  const row=await env.DB.prepare(`SELECT f.* FROM facilities f JOIN organizations o ON o.id=f.organization_id WHERE o.owner_user_id=?`).bind(user.id).first();
+  const row=await env.DB.prepare(`SELECT f.*,${demoGrant} AS demo_eligible FROM facilities f JOIN organizations o ON o.id=f.organization_id WHERE o.owner_user_id=?`).bind(user.id).first();
   if(!row)fail('Complete recycler onboarding first.',409);return row;
 }
 function cursor(request){const value=new URL(request.url).searchParams.get('after')||'';if(value)requireId(value);return value;}
-const requirementSelect=`SELECT r.*,u.display_name AS recycler_name,f.name AS facility_name,f.verification_status,
+const requirementSelect=`SELECT r.*,u.display_name AS recycler_name,f.name AS facility_name,f.verification_status,${demoGrant} AS demo_eligible,
   coalesce((SELECT sum(coalesce(demand_base,quantity_base)) FROM reservations z WHERE z.requirement_id=r.id AND ${allocated}),0) AS allocated_base
   FROM requirements r JOIN users u ON u.id=r.owner_id JOIN facilities f ON f.id=r.facility_id`;
-function projectRequirement(r){return {id:r.id,facilityId:r.facility_id,recyclerName:r.recycler_name||r.facility_name||'Recycler',verificationStatus:r.verification_status,
+function projectRequirement(r,env){return {id:r.id,facilityId:r.facility_id,recyclerName:r.recycler_name||r.facility_name||'Recycler',verificationStatus:r.verification_status,demoAccess:demoAccess(env,r),
   broadCode:r.broad_code,detailedCode:r.detailed_code,title:r.title,specification:r.specification,unit:r.unit,rate:rupees(r.rate_paise),ratePaise:r.rate_paise,
   minimum:quantity(r.minimum_base,r.unit),target:quantity(r.target_base,r.unit),remaining:quantity(r.target_base===null?null:Math.max(0,r.target_base-r.allocated_base),r.unit),
   areas:JSON.parse(r.areas_json),modes:JSON.parse(r.modes_json),validUntil:r.valid_until,state:r.state,version:r.version,updatedAt:r.updated_at};}
@@ -71,15 +74,15 @@ function normalizeRequirement(input){
 async function requirementsRoute(request,env,user,record){
   requireRole(user,'recycler');
   if(request.method==='GET'){
-    if(record){const row=await getRequirement(env,record);if(!row||row.owner_id!==user.id)fail('Requirement not found.',404);return json({requirement:projectRequirement(row)});}
+    if(record){const row=await getRequirement(env,record);if(!row||row.owner_id!==user.id)fail('Requirement not found.',404);return json({requirement:projectRequirement(row,env)});}
     const page=await rows(env.DB.prepare(requirementSelect+' WHERE r.owner_id=? AND r.id>? ORDER BY r.id LIMIT 51').bind(user.id,cursor(request)));
-    return json({requirements:page.slice(0,50).map(projectRequirement),nextCursor:page.length>50?page[49].id:null});
+    return json({requirements:page.slice(0,50).map(r=>projectRequirement(r,env)),nextCursor:page.length>50?page[49].id:null,demoAccess:demoAccess(env,await facility(env,user))});
   }
   if(request.method!=='PUT'||!record)fail('Method not supported.',405);requireId(record);
   const c=await command(request,env,user);if(c.previous)return c.previous;
   const v=version(c.input),n=normalizeRequirement(c.input),f=await facility(env,user),existing=await getRequirement(env,record);
   if(existing&&existing.owner_id!==user.id)fail('Requirement not found.',404);
-  if(n.state==='active'&&f.verification_status!=='verified')fail('Facility verification is required before publishing. You can save a paused requirement.',403);
+  if(n.state==='active'&&!eligible(env,f))fail('Facility verification is required before publishing. You can save a paused requirement.',403);
   if((existing?.version||0)!==v)fail('Requirement changed. Refresh before saving.',409);
   const time=now(),reason=text(c.input.reason,1000,'change reason');if(v&&!reason)fail('Explain this requirement change.');
   const statement=env.DB.prepare(`INSERT INTO requirements(id,owner_id,facility_id,broad_code,detailed_code,title,specification,unit,rate_paise,minimum_base,target_base,areas_json,modes_json,valid_until,state,version,created_at,updated_at)
@@ -95,10 +98,10 @@ async function source(env,user,lotId,itemId){
   const used=await env.DB.prepare(`SELECT coalesce(sum(quantity_base),0) AS n FROM reservations WHERE lot_id=? AND item_id=? AND ${allocated}`).bind(lot.id,item.id).first();
   return {lot,item,available:(item.quantity_base||0)-used.n};
 }
-function exclusions(r,s,amount){const reasons=[];
+function exclusions(r,s,amount,env){const reasons=[];
   if(r.state!=='active')reasons.push('Requirement is paused');
   if(r.valid_until<=now())reasons.push('Requirement has expired');
-  if(r.verification_status!=='verified')reasons.push('Facility verification is incomplete');
+  if(!eligible(env,r))reasons.push('Facility verification is incomplete');
   if(s.item.review_state!=='confirmed')reasons.push('Confirm the material category first');
   if(s.item.broad_code!==r.broad_code)reasons.push('Different broad category');
   if(r.detailed_code&&s.item.detailed_code&&r.detailed_code!==s.item.detailed_code)reasons.push('Different detailed category');
@@ -112,8 +115,8 @@ function exclusions(r,s,amount){const reasons=[];
 async function matches(request,env,user){
   requireRole(user,'collector');const url=new URL(request.url),s=await source(env,user,url.searchParams.get('lotId'),url.searchParams.get('itemId'));
   const amount=url.searchParams.has('quantity')?quantityBase(url.searchParams.get('quantity'),s.item.unit):s.available;
-  const page=await rows(env.DB.prepare(requirementSelect+" WHERE r.broad_code=? AND r.id>? AND u.status='active' AND r.state='active' AND f.verification_status='verified' AND r.valid_until>? ORDER BY r.id LIMIT 51").bind(s.item.broad_code||'',cursor(request),now()));
-  return json({lotVersion:s.lot.version,available:quantity(s.available,s.item.unit),matches:page.slice(0,50).map(r=>({...projectRequirement(r),exclusions:exclusions(r,s,amount),detailedReviewRequired:!!r.detailed_code&&!s.item.detailed_code})),nextCursor:page.length>50?page[49].id:null});
+  const page=await rows(env.DB.prepare(requirementSelect+" WHERE r.broad_code=? AND r.id>? AND u.status='active' AND r.state='active' AND (f.verification_status='verified' OR (?=1 AND EXISTS(SELECT 1 FROM demo_facility_access d WHERE d.facility_id=f.id AND d.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')))) AND r.valid_until>? ORDER BY r.id LIMIT 51").bind(s.item.broad_code||'',cursor(request),env.DEMO_MODE==='true'?1:0,now()));
+  return json({lotVersion:s.lot.version,available:quantity(s.available,s.item.unit),matches:page.slice(0,50).map(r=>({...projectRequirement(r,env),exclusions:exclusions(r,s,amount,env),detailedReviewRequired:!!r.detailed_code&&!s.item.detailed_code})),nextCursor:page.length>50?page[49].id:null});
 }
 async function permittedRequest(env,user,record){
   const row=await env.DB.prepare('SELECT * FROM supply_requests WHERE id=? AND (collector_id=? OR recycler_id=?)').bind(requireId(record),user.id,user.id).first();
@@ -135,14 +138,14 @@ async function requestsRoute(request,env,user,record,action){
     requireRole(user,'collector');const s=await source(env,user,input.lotId,input.itemId),r=await getRequirement(env,input.requirementId);
     if(!r)fail('Requirement not found.',404);
     if(s.lot.version!==input.lotVersion||r.version!==input.requirementVersion)fail('The draft or requirement changed. Review the current version.',409);
-    const amount=quantityBase(input.quantity,s.item.unit),why=exclusions(r,s,amount);
+    const amount=quantityBase(input.quantity,s.item.unit),why=exclusions(r,s,amount,env);
     if(why.length)fail(why.join('. ')+'.',409);
     if(!JSON.parse(r.modes_json).includes(input.mode))fail('Choose an offered pickup/drop-off mode.');
     const ask=money(input.ask,true),estimate=materialAmount(r.rate_paise,amount,r.unit);
     const photos=await rows(env.DB.prepare('SELECT file_id FROM lot_files WHERE lot_id=?').bind(s.lot.id));
     if(input.sharePhotos!==true&&photos.length)fail('Confirm sharing these lot photos with the selected recycler.');
     const snapshot={lotTitle:s.lot.title,locality:s.lot.locality,description:s.item.description,condition:s.item.condition,broadCode:s.item.broad_code,detailedCode:s.item.detailed_code,
-      requirement:projectRequirement(r),estimatePaise:estimate,estimatedMaterial:rupees(estimate),collectorProposal:rupees(ask??estimate),fileIds:photos.map(f=>f.file_id),reviewedAt:time};
+      requirement:projectRequirement(r,env),estimatePaise:estimate,estimatedMaterial:rupees(estimate),collectorProposal:rupees(ask??estimate),fileIds:photos.map(f=>f.file_id),reviewedAt:time};
     const expires=new Date(Math.min(Date.parse(r.valid_until),Date.now()+7*86400000)).toISOString();
     const first=env.DB.prepare(`INSERT INTO supply_requests(id,collector_id,recycler_id,requirement_id,requirement_version,lot_id,lot_version,item_id,quantity_base,unit,mode,ask_paise,snapshot_json,state,version,expires_at,created_at,updated_at)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',1,?,?,?)`).bind(record,user.id,r.owner_id,r.id,r.version,s.lot.id,s.lot.version,s.item.id,amount,s.item.unit,input.mode,ask,JSON.stringify(snapshot),expires,time,time);
@@ -161,6 +164,7 @@ async function requestsRoute(request,env,user,record,action){
   if(action==='accept'){
     if(row.recycler_id!==user.id)fail('Only the addressed recycler can accept.',403);
     const r=await getRequirement(env,row.requirement_id),orderId=id(),amount=row.ask_paise??JSON.parse(row.snapshot_json).estimatePaise;
+    if(!eligible(env,r))fail('Facility verification is required before accepting.',403);
     const first=env.DB.prepare(`INSERT INTO orders(id,request_id,collector_id,recycler_id,facility_id,state,version,material_paise,terms_version,created_at,updated_at)
       SELECT ?,?,?,?,?,'accepted',1,?,1,?,? WHERE EXISTS(SELECT 1 FROM supply_requests WHERE id=? AND version=? AND state IN ('submitted','clarification'))`).bind(orderId,record,row.collector_id,row.recycler_id,r.facility_id,amount,time,time,record,row.version);
     return commit(env,c,first,{id:orderId,requestId:record,version:1},[event(env,record,user.id,'accepted','Recycler accepted; supply and demand reserved. Logistics and payment remain separate.')]);

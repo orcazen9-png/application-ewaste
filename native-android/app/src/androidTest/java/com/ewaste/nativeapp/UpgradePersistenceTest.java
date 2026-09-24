@@ -26,7 +26,8 @@ public class UpgradePersistenceTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         LocalStore store = new LocalStore(context);
         if (phase.equals("seed")) {
-            assertEquals(2, context.getPackageManager().getPackageInfo(context.getPackageName(), 0).getLongVersionCode());
+            long version=context.getPackageManager().getPackageInfo(context.getPackageName(), 0).getLongVersionCode();
+            assertTrue("Upgrade baseline must be the v2 fixture or actual v3 release",version==2||version==3);
             store.setCode(CODE);
             store.saveDraft(new JSONObject().put("id", DRAFT).put("photoId", PHOTO).put("title", "Laptop awaiting review"));
             try (FileOutputStream out = new FileOutputStream(store.photo(PHOTO))) {

@@ -57,6 +57,13 @@
       "when": 1790208000005,
       "tag": "0007_ledger_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790208000006,
+      "tag": "0008_demo_facility_access",
+      "breakpoints": true
     }
   ]
 }

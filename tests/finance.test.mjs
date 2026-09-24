@@ -57,9 +57,14 @@ test('documents are private until shared, immutable, scoped to an order and down
 });
 test('ERP, earnings and notifications use the same ledger and isolate personal inboxes',async t=>{
   const f=await finance(t);await f.received();const inv=await f.invoice();await f.approve(inv);const p=await f.payment(inv,'2500');await f.cmd(f.c,'payment-review',{paymentId:p.paymentId,decision:'confirm',message:'Received'});
-  const analytics=await f.okOps('/analytics');assert.equal(analytics.totals.total,1);assert.equal(analytics.orders[0].paymentState,'Partially settled');assert.equal(analytics.payments.find(x=>x.status==='confirmed').amount,250000);assert.equal(analytics.quantities[0].received,200000);
+  const analytics=await f.okOps('/analytics');assert.equal(analytics.totals.total,1);assert.equal(analytics.orders[0].paymentState,'Partially settled');assert.equal(analytics.payments.find(x=>x.status==='confirmed').amount,250000);assert.equal(analytics.quantities[0].received,200000);assert.equal(analytics.dues.find(x=>x.account==='material').outstanding,750000);
   const earnings=await f.ok(f.c,'/earnings');assert.equal(earnings.confirmed,'2500.00');assert.equal(earnings.outstanding,'7500.00');
   assert.equal((await f.ok(f.c,'/orders/'+f.order)).order.paymentState,'Partially settled');assert.equal((await f.read()).order.paymentState,'Partially settled');
   const notifications=await f.ok(f.c,'/notifications');assert.ok(notifications.unread>0);const n=notifications.notifications[0];await f.ok(f.r,'/notifications/'+n.id+'/read','POST',{});assert.equal((await f.ok(f.c,'/notifications')).unread,notifications.unread);await f.ok(f.c,'/notifications/'+n.id+'/read','POST',{});assert.equal((await f.ok(f.c,'/notifications')).unread,notifications.unread-1);
   const csv=await f.ops('/export');assert.equal(csv.status,200);assert.match(await csv.text(),/Partially settled/);
+});
+test('an explained actual transfer during a custody dispute never closes the dispute',async t=>{
+  const f=await finance(t);await f.received();const inv=await f.invoice();await f.approve(inv);await f.act(f.c,'issue',{message:'Inspection damage needs review'});
+  const p=await f.payment(inv,'2000',{exceptionReason:'Actual advance transferred while damage is being reviewed'});await f.cmd(f.c,'payment-review',{paymentId:p.paymentId,decision:'confirm',message:'Advance received; damage dispute remains open'});
+  assert.equal((await f.read()).cases[0].state,'open');assert.equal((await f.financeRead()).accounts[0].confirmed,'2000.00');
 });

@@ -11,6 +11,21 @@ import {CATALOG} from '../dist/waste-catalog.js';
 import {materialAmount} from '../server/accounts/marketplace.js';
 const id=()=>crypto.randomUUID(),future=()=>new Date(Date.now()+30*86400000).toISOString();
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2ioAAAAASUVORK5CYII=','base64');
+test('demo facility access is explicit, expires and never claims verification',async t=>{
+  const f=await fixture(t),r=await f.user('recycler',false),c=await f.user(),lot=await f.lot(c);
+  await f.env.DB.prepare('INSERT INTO demo_facility_access VALUES(?,?,?)').bind(r.facility,future(),'Invited demo only').run();
+  const req=await f.requirement(r,{state:'paused'}),publish={...req.input,commandId:id(),expectedVersion:1,state:'active',reason:'Demo'};
+  assert.equal((await f.call(r,'/requirements/'+req.id,'PUT',publish)).status,403);
+  f.env.DEMO_MODE='true';await f.ok(r,'/requirements/'+req.id,'PUT',publish);
+  const matches=(await f.ok(c,`/matches?lotId=${lot.id}&itemId=${lot.itemId}`)).matches;
+  assert.equal(matches[0].demoAccess,true);assert.equal(matches[0].verificationStatus,'unverified');
+  const s=await f.request(c,lot,req,{requirementVersion:2});
+  await f.env.DB.prepare("UPDATE demo_facility_access SET expires_at='2000-01-01' WHERE facility_id=?").bind(r.facility).run();
+  assert.equal((await f.call(r,'/requests/'+s.id+'/accept','POST',{commandId:id(),expectedVersion:1})).status,403);
+  await f.env.DB.prepare('UPDATE demo_facility_access SET expires_at=? WHERE facility_id=?').bind(future(),r.facility).run();
+  await f.ok(r,'/requests/'+s.id+'/accept','POST',{commandId:id(),expectedVersion:1});
+  assert.equal((await f.env.DB.prepare('SELECT verification_status FROM facilities WHERE id=?').bind(r.facility).first()).verification_status,'unverified');
+});
 test('marketplace migration sorts after the installed account foundation for timestamp-based migrators',async()=>{
   const journal=JSON.parse(await readFile('drizzle/meta/_journal.json','utf8'));
   for(let i=1;i<journal.entries.length;i++)assert.ok(journal.entries[i].when>journal.entries[i-1].when,'Migrations must increase so an existing installation does not skip the new schema');

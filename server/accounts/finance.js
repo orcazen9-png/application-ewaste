@@ -1,11 +1,11 @@
-import {fail,id,json,now,requireId,rows,text} from './common.js';
+import {fail,id,json,now,indiaToday,requireId,rows,text} from './common.js';
 import {begin,commit} from './commands.js';
 import {money,rupees} from './marketplace.js';
 import {documentRoute,financeOrder,ownedDocument,financeStaff} from './documents.js';
 const stmt=(env,sql,...args)=>env.DB.prepare(sql).bind(...args);
 const required=(v,n,label)=>{const value=text(v,n,label);if(!value)fail('Enter '+label+'.');return value;};
 const financial=user=>{if(!financeStaff(user))fail('Only Freedom Value finance staff can record settlement.',403);};
-function date(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value))||new Date(value).toISOString().slice(0,10)!==value||value>now().slice(0,10))fail('Enter a valid date no later than today.');return value;}
+function date(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value))||new Date(value).toISOString().slice(0,10)!==value||value>indiaToday())fail('Enter a valid date no later than today.');return value;}
 async function clearCustody(env,o){if(o.accepted_base===null||o.accepted_base<=0||await stmt(env,"SELECT id FROM logistics_cases WHERE order_id=? AND state='open'",o.id).first())fail('Agree the received quantity and resolve custody issues before approving invoices or payments.',409);}
 async function basis(env,o,account){
   if(account==='material'){
@@ -63,13 +63,18 @@ async function action(request,env,user,o,kind){
     extras.push((g,a)=>stmt(env,`INSERT INTO invoice_reviews(id,invoice_id,version,user_id,decision,message,created_at) SELECT ?,?,?,?,?,?,? WHERE ${g}`,id(),v.invoice_id,v.version,user.id,i.decision,message,time,...a));
     extras.push((g,a)=>stmt(env,`UPDATE invoice_versions SET status=? WHERE invoice_id=? AND version=? AND ${g}`,status,v.invoice_id,v.version,...a));data={invoiceId:v.invoice_id,invoiceVersion:v.version,decision:i.decision,status,message};
   }else if(kind==='payment'){
-    financial(user);await clearCustody(env,o);
+    financial(user);
     const v=await stmt(env,`SELECT v.*,i.account FROM invoices i JOIN invoice_versions v ON v.invoice_id=i.id AND v.version=i.current_version WHERE i.id=? AND i.order_id=?`,requireId(i.invoiceId),o.id).first();
-    if(!v||v.version!==i.invoiceVersion||v.status!=='acknowledged')fail('Record settlement against the current approved invoice.',409);
-    const b=await basis(env,o,v.account);if(v.basis_version!==b.version||v.quantity_base!==o.accepted_base)fail('Invoice basis changed. Obtain approval of a revised invoice.',409);
+    if(!v||v.version!==i.invoiceVersion)fail('Record settlement against the current invoice revision.',409);
+    const exception=text(i.exceptionReason,1000,'exception reason');
+    // Recording an actual transfer is independent of resolving an invoice/custody
+    // dispute. Exceptional facts require an explicit explanation and stay visible.
+    let reviewRequired=v.status!=='acknowledged';
+    try{await clearCustody(env,o);const b=await basis(env,o,v.account);if(v.basis_version!==b.version||v.quantity_base!==o.accepted_base)reviewRequired=true;}catch(error){if(error.status!==409)throw error;reviewRequired=true;}
+    if(reviewRequired&&!exception)fail('Invoice or custody review is pending. To record an actual external transfer, explain the exception. This will not resolve the dispute.',409);
     const amount=money(i.amount);if(amount<=0)fail('Payment amount must be positive.');
     if(!['bank_transfer','upi','cash','cheque','other'].includes(i.method))fail('Choose the payment method.');
-    const reference=required(i.reference,150,'payment reference'),paidOn=date(i.paidOn),exception=text(i.exceptionReason,1000,'exception reason');
+    const reference=required(i.reference,150,'payment reference'),paidOn=date(i.paidOn);
     const allocated=await stmt(env,"SELECT coalesce(sum(amount_paise),0) AS total FROM payments WHERE invoice_id=? AND status<>'reversed'",v.invoice_id).first();
     if(allocated.total+amount>v.amount_paise&&!exception)fail('This exceeds the invoice balance including pending or disputed payments. Explain the actual overpayment to record it.',409);
     if(await stmt(env,"SELECT id FROM payments WHERE order_id=? AND account=? AND reference=?",o.id,v.account,reference).first())fail('This payment reference is already recorded.',409);
