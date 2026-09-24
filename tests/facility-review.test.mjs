@@ -6,6 +6,7 @@ const id=()=>crypto.randomUUID(),future=days=>new Date(Date.now()+days*86400000)
 const pdf='%PDF-1.7\n1 0 obj<</Type/Catalog>>endobj\n%%EOF';
 async function prepare(t){
  const f=await setup(t),r=await f.user('recycler',false),doc=id();
+ await f.env.DB.prepare("INSERT INTO memberships SELECT ?,organization_id,'owner' FROM facilities WHERE id=?").bind(r.id,r.facility).run();
  const file=(u,d=doc,method='PUT',data=pdf,mime='application/pdf')=>worker.fetch(new Request('https://test.example/api/v1/facility/documents/'+d+'?name=Registration.pdf',{method,headers:{Authorization:'Bearer '+u.token,'Content-Type':mime},...(method==='PUT'?{body:data}:{})}),f.env);
  assert.equal((await file(r)).status,201);
  const profile={name:'Mumbai recovery facility',address:'12 Industrial Road',locality:'Mumbai',contact:'Facility desk',hours:'Monday to Saturday 9–6',areas:'Mumbai, Thane',authority:'Issuing authority as printed on document',registration:'TEST-001',categories:['B01'],documentIds:[doc],documentExpiry:future(90).slice(0,10),pickup:true};
@@ -44,7 +45,7 @@ test('facility approval scope and expiry gate new business without rewriting exi
  const req=await f.requirement(f.r),lot=await f.lot(f.c),request=await f.request(f.c,lot,req),order=await f.ok(f.r,'/requests/'+request.id+'/accept','POST',{commandId:id(),expectedVersion:1});
  const pending=await f.request(f.c,lot,req,{quantity:'20'});
  await f.env.DB.prepare("UPDATE facility_profiles SET valid_until='2000-01-01T00:00:00.000Z' WHERE facility_id=?").bind(f.r.facility).run();
- assert.equal((await f.ok(f.r,'/facility')).status,'expired');
+ assert.equal((await f.ok(f.r,'/facility')).status,'expired');assert.equal((await f.ok(f.r,'/me')).facilities[0].verificationStatus,'expired');
  assert.equal((await f.ok(f.c,'/matches?lotId='+lot.id+'&itemId='+lot.itemId)).matches.some(r=>r.id===req.id),false);
  assert.equal((await f.call(f.r,'/requests/'+pending.id+'/accept','POST',{commandId:id(),expectedVersion:1})).status,403);
  assert.equal((await f.ok(f.r,'/orders/'+order.id)).order.state,'accepted');

@@ -111,8 +111,10 @@ export async function profileRoute(request, env, user, path) {
   }
   if (path !== '/api/v1/me') return null;
   if (request.method === 'GET') {
-    const facilities = await rows(env.DB.prepare(`SELECT f.id,f.name,f.locality,f.verification_status AS verificationStatus
-      FROM facilities f JOIN memberships m ON m.organization_id=f.organization_id WHERE m.user_id=?`).bind(user.id));
+    const facilities = await rows(env.DB.prepare(`SELECT f.id,f.name,f.locality,
+      CASE WHEN fp.status='approved' AND fp.valid_until<=strftime('%Y-%m-%dT%H:%M:%fZ','now') THEN 'expired' ELSE f.verification_status END AS verificationStatus,
+      CASE WHEN fp.facility_id IS NOT NULL THEN 'Freedom Value document review' ELSE 'Existing facility record' END AS reviewSource
+      FROM facilities f JOIN memberships m ON m.organization_id=f.organization_id LEFT JOIN facility_profiles fp ON fp.facility_id=f.id WHERE m.user_id=?`).bind(user.id));
     return json({user: publicUser(user), facilities});
   }
   if (request.method === 'PUT') {

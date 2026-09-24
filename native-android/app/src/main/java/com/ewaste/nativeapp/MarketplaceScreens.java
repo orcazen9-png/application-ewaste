@@ -140,6 +140,7 @@ final class MarketplaceScreens {
     }catch(Exception e){a.showError(e);}});}
     void requirementSummary(JSONObject r){
         a.label(r.optString("recyclerName")+" · "+(r.optBoolean("demoAccess")?a.t("Demo access only. Facility verification is pending."):a.t(r.optString("verificationStatus"))),14);
+        if(r.optString("reviewSource").equals("Freedom Value document review"))a.label(a.t("Freedom Value reviews submitted documents. This is not government certification."),13);
         a.label("₹"+r.optString("rate")+" / "+r.optString("unit")+" · "+a.t(r.optString("state")),17);
         a.label(a.t("Minimum ")+r.optString("minimum")+a.t(" · Remaining ")+(r.isNull("remaining")?a.t("Unlimited"):r.optString("remaining"))+" "+r.optString("unit"),14);
         a.label(a.t("Areas: ")+join(r.optJSONArray("areas"),", ")+a.t(" · Until ")+r.optString("validUntil"),14);

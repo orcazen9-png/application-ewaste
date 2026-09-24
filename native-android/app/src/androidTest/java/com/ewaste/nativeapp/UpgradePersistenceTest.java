@@ -27,7 +27,7 @@ public class UpgradePersistenceTest {
         LocalStore store = new LocalStore(context);
         if (phase.equals("seed")) {
             long version=context.getPackageManager().getPackageInfo(context.getPackageName(), 0).getLongVersionCode();
-            assertTrue("Upgrade baseline must be a prior native release",version>=2&&version<=6);
+            assertTrue("Upgrade baseline must be a prior native release",version>=2&&version<=7);
             store.setCode(CODE);
             store.saveDraft(new JSONObject().put("id", DRAFT).put("photoId", PHOTO).put("title", "Laptop awaiting review"));
             try (FileOutputStream out = new FileOutputStream(store.photo(PHOTO))) {
