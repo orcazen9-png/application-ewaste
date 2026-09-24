@@ -25,7 +25,7 @@ public class NativeDesignTest {
     void capture(String name)throws Exception{String prefix=InstrumentationRegistry.getArguments().getString("screenshotPrefix","ui");ParcelFileDescriptor fd=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand("screencap -p /sdcard/"+prefix+"-"+name+".png");try(InputStream in=new ParcelFileDescriptor.AutoCloseInputStream(fd)){byte[] b=new byte[4096];while(in.read(b)!=-1){}}}
     @Test public void photoFirstFlowAndPersistentNavigationRenderWithoutClippedActions()throws Exception{
         SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();String userId=UUID.randomUUID().toString();
-        JSONObject user=new JSONObject().put("id",userId).put("role","collector").put("displayName","Animesh").put("locality","Mumbai").put("language","en").put("mobile","invited:test").put("version",1);
+        JSONObject user=new JSONObject().put("id",userId).put("role","collector").put("displayName","Collector").put("locality","Mumbai").put("language","en").put("mobile","invited:test").put("version",1);
         AccountActivity.apiFactory=()->new AccountApi(){@Override public JSONObject request(String method,String path,String token,JSONObject body)throws Exception{
             if(path.equals("/me"))return new JSONObject().put("user",user);
             if(path.equals("/lots"))return new JSONObject().put("lots",new JSONArray()).put("nextCursor",JSONObject.NULL);

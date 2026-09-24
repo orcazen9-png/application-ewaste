@@ -250,10 +250,11 @@ final class MarketplaceScreens {
             JSONArray items=result.optJSONArray("items");StringBuilder text=new StringBuilder(result.optString("description")).append("\n\n").append(result.optString("uncertainty")).append("\n").append(result.optString("nextPhoto"));
             if(items!=null)for(int i=0;i<items.length();i++)text.append("\n").append(items.optJSONObject(i).optString("code")).append(": ").append(items.optJSONObject(i).optString("evidence"));
             AlertDialog.Builder dialog=new AlertDialog.Builder(a).setTitle(a.t("Review identification")).setMessage(text.toString()).setNegativeButton(a.t("Keep manual selection"),null);
-            if(items!=null&&items.length()>0)dialog.setPositiveButton(a.t("Review a suggested category"),(d,w)->{String[] choices=new String[items.length()];for(int i=0;i<choices.length;i++)choices[i]=items.optJSONObject(i).optString("code");new AlertDialog.Builder(a).setTitle(a.t("Confirm category")).setItems(choices,(di,pos)->{
+            if(items!=null&&items.length()>0)dialog.setPositiveButton(a.t("Review a suggested category"),(d,w)->{String[] choices=new String[items.length()],labels=new String[items.length()];for(int i=0;i<choices.length;i++){choices[i]=items.optJSONObject(i).optString("code");labels[i]=assessmentLabel(choices[i]);}new AlertDialog.Builder(a).setTitle(a.t("Confirm category")).setItems(labels,(di,pos)->{
                 if(draft!=null){try{JSONObject current=a.store.draft(owner,draft.getString("id")),line=current.getJSONArray("items").getJSONObject(a.itemIndex);if(!line.optString("broadCode").equals(choices[pos]))line.put("detailedCode",JSONObject.NULL);line.put("broadCode",choices[pos]).put("reviewState","confirmed");a.store.save(owner,current);a.draft=current;a.editStep=1;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}}
                 else {JSONObject input=input(request.optInt("version"));put(input,"code",choices[pos]);change("/requests/"+request.optString("id")+"/review-category","POST",input,"request");}
             }).setNegativeButton(a.t("Back"),null).show();});dialog.show();
         });
     }
+    String assessmentLabel(String code){if(Catalog.valid(code))return a.t(Catalog.name(code));try{JSONObject catalog=a.store.cached(a.account(),"catalogue");JSONArray list=catalog==null?null:catalog.optJSONArray("categories");if(list!=null)for(int i=0;i<list.length();i++){JSONObject category=list.getJSONObject(i);if(category.optString("code").equals(code))return code+" · "+a.t(category.optString("name"));}}catch(Exception ignored){}return code;}
 }

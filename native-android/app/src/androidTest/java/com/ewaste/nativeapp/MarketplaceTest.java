@@ -67,6 +67,22 @@ public class MarketplaceTest {
             assertEquals(1,api.submissions);scenario.recreate();idle(scenario);assertEquals(1,api.submissions);
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
     }
+    @Test public void photoIdentificationUploadsThePhotoBeforeAnyLotFormIsCompleted()throws Exception{
+        SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();final int[] uploads={0},lotWrites={0};
+        MarketApi api=new MarketApi(){
+            @Override public void upload(File file,String fileId,String token){assertTrue(file.exists());uploads[0]++;}
+            @Override public JSONObject request(String method,String path,String token,JSONObject input)throws Exception{
+                if(path.startsWith("/lots/")&&method.equals("PUT")){lotWrites[0]++;throw new AssertionError("Identification must not submit the unfinished lot");}
+                if(path.startsWith("/assessments/")&&method.equals("POST"))return new JSONObject().put("result",new JSONObject().put("description","Laptop").put("uncertainty","").put("nextPhoto","").put("items",new JSONArray().put(new JSONObject().put("code","B01").put("evidence","Laptop visible"))));
+                return super.request(method,path,token,input);
+            }
+        };
+        api.user.put("role","collector");AccountActivity.apiFactory=()->api;vault.save(new JSONObject().put("token","photo-test-only").put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",api.user));
+        try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            idle(s);s.onActivity(a->{try{a.createDraft();String photo=UUID.randomUUID().toString();try(FileOutputStream out=new FileOutputStream(a.store.photo(a.account(),photo))){out.write(new byte[]{1,2,3});}a.store.attachPhoto(a.account(),a.draft.getString("id"),photo);a.draft=a.store.draft(a.account(),a.draft.getString("id"));a.market.runAssessment(a.draft,null,photo);}catch(Exception e){throw new AssertionError(e);}});idle(s);
+            assertEquals(1,uploads[0]);assertEquals(0,lotWrites[0]);onView(withText("Keep manual selection")).inRoot(isDialog()).perform(click());s.onActivity(a->{assertEquals("",a.draft.optString("title"));assertEquals("",a.draft.optJSONArray("items").optJSONObject(0).optString("quantity"));});
+        }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
+    }
     static class MarketApi extends AccountApi {
         final JSONObject user,requirement,request,order,lot;int requirementWrites=0,accepts=0,submissions=0;
         MarketApi()throws Exception{

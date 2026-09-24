@@ -14,7 +14,7 @@
 | Live private storage | Separate resources, private uploads/read permissions, migrations and backup check | Private D1 deployed; cross-account denial passed. 200 MB raw-file demo allowance. Export restored in isolated SQLite with integrity/foreign-key/private-file SHA checks; scheduled disaster recovery not claimed |
 | Deployment | HTTPS API and ERP, live smoke tests, preservation of old workspace | Separate ewaste-accounts-demo Worker/DB, migrations 0000–0008. Live Hindi Gemini laptop classification/cached retry, private D1 roundtrip, ERP filters/export, earnings fields and logout passed. Legacy host preserved |
 | Signed APK publication | Account mode enabled, correct API origin, permanent certificate, version upgrade and direct download | Published native-v5-demo from commit 42fbe7ca6fe259b84d5c6f5feaf84fb3d2e90321. Run 35939722564 passed actual v4 → v5 installation/data-preservation and 13 native tests. Anonymous APK download/hash and signed verification report checks passed |
-| Physical phone | Actual install/update, sign-in, capture, upload and shared order check | No connected-phone evidence. User installation/check still required; goal not complete |
+| Physical phone | Actual install/update, sign-in, capture, upload and shared order check | User screenshots establish v5 installation, collector sign-in and access to lot creation/earnings. User rejected the UI. Camera, document picker and complete shared-order verification remain unproven |
 
 Confirmed rules: collector receives material amount in full; recycler pays logistics separately; no automatic payment transfer; Freedom Value finance records external settlement; collector confirms receipt; invoice versions and proposals never silently overwrite acknowledged facts. Native Android remains Java/AppCompat, with collector and recycler roles in one APK and a separate restricted ERP.
 
@@ -31,3 +31,7 @@ The invited demo recycler has an expiring sandbox grant; its facility remains un
 Earlier shared-workspace data is retained by package update, not automatically assigned to personal accounts; ownership review/import remains separate.
 
 Do not count mock authentication, emulator tests, a published APK alone, or sample ERP records as proof of real-provider/physical-phone completion. Keep unresolved requirements visible across continuations. Existing unrelated untracked research/output files are outside this change.
+
+## UI correction after phone review
+
+The user's 24 September phone screenshots exposed an unacceptable form-first interface. V6 replaces the account presentation with persistent navigation, grouped fields, clear primary actions, a photo/details/review lot flow and an earnings dashboard. Draft IDs, account sessions, payment rules and the Cloudflare API remain in place. Actual Android renders from run 35948017131 were visually reviewed; its 14 normal-size native tests passed. The first compact-font command failed because Gradle had removed the test APK; both APKs are now explicitly reinstalled before that check. V6 publication and compact-screen evidence are pending the signed release run; no completion claim is made here.
