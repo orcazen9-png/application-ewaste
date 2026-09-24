@@ -22,12 +22,13 @@ public final class AccountSync {
         try {
             JSONObject result=api.request("PUT","/lots/"+lotId,token,command);
             store.complete(account,command.getString("commandId"),result.getInt("version"));
-        }catch(AccountApi.Failure error){if(error.status==409)store.conflict(account,lotId);throw error;}
+        }catch(AccountApi.Failure error){if(error.status==410){store.removeDraft(account,lotId);return;}if(error.status==409)store.conflict(account,lotId);throw error;}
     }
     public void refresh(String account,String token)throws Exception {
         String after="";
         do {
             JSONObject page=api.request("GET","/lots"+(after.isEmpty()?"":"?after="+after),token,null);
+            JSONArray removed=page.optJSONArray("deletedLots");if(removed!=null)for(int i=0;i<removed.length();i++)store.removeDraft(account,removed.getString(i));
             JSONArray lots=page.getJSONArray("lots");
             for(int i=0;i<lots.length();i++){
                 JSONObject lot=lots.getJSONObject(i);store.importServer(account,lot);

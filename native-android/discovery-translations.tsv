@@ -97,3 +97,34 @@ Confirm location	स्थान की पुष्टि करें	ठि�
 Area search is unavailable. Use GPS at the location instead.	क्षेत्र खोज उपलब्ध नहीं है। उस स्थान पर GPS इस्तेमाल करें।	परिसर शोध उपलब्ध नाही. त्या ठिकाणी GPS वापरा.
 No location found. Include the city and state, or use GPS.	स्थान नहीं मिला। शहर और राज्य लिखें या GPS इस्तेमाल करें।	ठिकाण सापडले नाही. शहर आणि राज्य लिहा किंवा GPS वापरा.
 Current GPS location	वर्तमान GPS स्थान	सध्याचे GPS ठिकाण
+Delete lot	लॉट हटाएँ	लॉट हटवा
+Delete this lot?	यह लॉट हटाएँ?	हा लॉट हटवायचा?
+Remove it from My lots and recycler discovery. Existing conversations and transaction records are kept. Active orders must be resolved first.	इसे मेरे लॉट और रिसाइकलर खोज से हटाएँ। बातचीत और लेनदेन के रिकॉर्ड बने रहेंगे। पहले सक्रिय ऑर्डर निपटाएँ।	माझे लॉट आणि रिसायकलर शोधातून काढा. संभाषण आणि व्यवहार नोंदी जतन राहतील. आधी सक्रिय ऑर्डर सोडवा.
+Sync the pending save before deleting this lot.	लॉट हटाने से पहले लंबित सेव सिंक करें।	लॉट हटवण्यापूर्वी प्रलंबित सेव्ह सिंक करा.
+Offers & chats	प्रस्ताव और बातचीत	प्रस्ताव आणि गप्पा
+Review offers and talk to the other party	प्रस्ताव देखें और दूसरे पक्ष से बात करें	प्रस्ताव पाहा आणि दुसऱ्या पक्षाशी बोला
+Conversations	बातचीत	संभाषणे
+Conversation	बातचीत	संभाषण
+Talk about the lot, pickup and your offer.	लॉट, पिकअप और प्रस्ताव पर बात करें।	लॉट, संकलन आणि प्रस्तावाबद्दल बोला.
+View offers	प्रस्ताव देखें	प्रस्ताव पाहा
+No conversations yet. Open a posted lot or an offer to start chatting.	अभी कोई बातचीत नहीं। शुरू करने के लिए प्रकाशित लॉट या प्रस्ताव खोलें।	अद्याप संभाषण नाही. सुरुवातीस प्रकाशित लॉट किंवा प्रस्ताव उघडा.
+Connect to load your messages.	संदेश देखने के लिए कनेक्ट करें।	संदेश पाहण्यासाठी कनेक्ट करा.
+Messages refresh automatically while this screen is open.	यह स्क्रीन खुली रहने पर संदेश अपने आप अपडेट होते हैं।	ही स्क्रीन उघडी असताना संदेश आपोआप अद्ययावत होतात.
+Offers in this conversation	इस बातचीत के प्रस्ताव	या संभाषणातील प्रस्ताव
+Accept offer	प्रस्ताव स्वीकार करें	प्रस्ताव स्वीकारा
+Waiting for the other party to respond.	दूसरे पक्ष के जवाब की प्रतीक्षा है।	दुसऱ्या पक्षाच्या प्रतिसादाची वाट पाहत आहे.
+Review or counter offer	प्रस्ताव देखें या नया प्रस्ताव दें	प्रस्ताव पाहा किंवा प्रतिप्रस्ताव द्या
+Review offer	प्रस्ताव देखें	प्रस्ताव पाहा
+Messages	संदेश	संदेश
+Message	संदेश	संदेश
+Send the first message about this lot.	इस लॉट के बारे में पहला संदेश भेजें।	या लॉटबद्दल पहिला संदेश पाठवा.
+Older messages	पुराने संदेश	जुने संदेश
+Latest messages	नवीनतम संदेश	नवीनतम संदेश
+Open conversation	बातचीत खोलें	संभाषण उघडा
+Chat with aggregator	एग्रीगेटर से बात करें	संकलकाशी बोला
+Chat with recycler	रिसाइकलर से बात करें	रिसायकलरशी बोला
+Save a lot online before starting a conversation.	बातचीत शुरू करने से पहले लॉट ऑनलाइन सेव करें।	संभाषण सुरू करण्यापूर्वी लॉट ऑनलाइन जतन करा.
+New message	नया संदेश	नवीन संदेश
+Open your conversation	अपनी बातचीत खोलें	तुमचे संभाषण उघडा
+Resolve the active order before deleting this lot.	लॉट हटाने से पहले सक्रिय ऑर्डर निपटाएँ।	लॉट हटवण्यापूर्वी सक्रिय ऑर्डर सोडवा.
+This lot was deleted. Refresh your lots.	यह लॉट हटा दिया गया। अपने लॉट रिफ्रेश करें।	हा लॉट हटवला आहे. तुमचे लॉट रिफ्रेश करा.

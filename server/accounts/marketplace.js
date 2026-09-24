@@ -126,7 +126,7 @@ async function permittedRequest(env,user,record){
   const row=await env.DB.prepare('SELECT * FROM supply_requests WHERE id=? AND (collector_id=? OR recycler_id=?)').bind(requireId(record),user.id,user.id).first();
   if(!row)fail('Request not found.',404);return row;
 }
-function projectRequest(r){return {id:r.id,collectorId:r.collector_id,recyclerId:r.recycler_id,requirementId:r.requirement_id,lotId:r.lot_id,itemId:r.item_id,quantity:quantity(r.quantity_base,r.unit),unit:r.unit,mode:r.mode,
+export function projectRequest(r){return {id:r.id,collectorId:r.collector_id,recyclerId:r.recycler_id,requirementId:r.requirement_id,lotId:r.lot_id,itemId:r.item_id,quantity:quantity(r.quantity_base,r.unit),unit:r.unit,mode:r.mode,
   ask:rupees(r.ask_paise),snapshot:JSON.parse(r.snapshot_json),state:r.state,version:r.version,expiresAt:r.expires_at,createdAt:r.created_at,proposedBy:r.proposed_by||r.collector_id,offerVersion:r.offer_version};}
 function projectOrder(r){return {id:r.id,requestId:r.request_id,collectorId:r.collector_id,recyclerId:r.recycler_id,facilityId:r.facility_id,state:r.state,version:r.version,materialAmount:rupees(r.material_paise),termsVersion:r.terms_version,logistics:'Not arranged; recycler pays separately',paymentState:paymentState(r),createdAt:r.created_at};}
 async function requestsRoute(request,env,user,record,action){

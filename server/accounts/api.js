@@ -1,3 +1,4 @@
+import {chatRoute} from './chat.js';
 import {CATALOG} from '../../dist/waste-catalog.js';
 import {authenticate, authRoute, profileRoute} from './auth.js';
 import {fileRoute} from './files.js';
@@ -24,6 +25,7 @@ export async function accountApi(request, env) {
   const invitation=await invitationRoute(request,env,path);if(invitation)return invitation;
   const auth = await authRoute(request, env, path); if (auth) return auth;
   const user = await authenticate(request, env);
+  const chat=await chatRoute(request,env,user,path);if(chat)return chat;
   const discovery=await discoveryRoute(request,env,user,path);if(discovery)return discovery;
   const facility=await facilityRoute(request,env,user,path);if(facility)return facility;
   const insights=await personalInsights(request,env,user,path);if(insights)return insights;

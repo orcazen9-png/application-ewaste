@@ -92,6 +92,13 @@
       "when": 1790208000010,
       "tag": "0012_listing_asking_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1790208000011,
+      "tag": "0013_lot_deletion_chat",
+      "breakpoints": true
     }
   ]
 }

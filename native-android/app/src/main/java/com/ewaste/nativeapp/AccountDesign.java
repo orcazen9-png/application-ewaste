@@ -69,7 +69,7 @@ final class AccountDesign {
         if(collector){JSONArray lots=a.store.drafts(a.account());int pending=0;for(int i=0;i<lots.length();i++)if(!lots.getJSONObject(i).optString("syncState").equals("synced"))pending++;
             LinearLayout stats=row();a.page.addView(stats);LinearLayout left=card(stats,WHITE);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.rightMargin=dp(6);left.setLayoutParams(lp);metric(left,a.t("Saved lots"),String.valueOf(lots.length()),"box");LinearLayout right=card(stats,WHITE);LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(0,-2,1);rp.leftMargin=dp(6);right.setLayoutParams(rp);metric(right,a.t("Need to sync"),String.valueOf(pending),"sync");space(a.page,16);
         }
-        section(a.t("Your workspace"));link(a.page,a.t(collector?"My requests":"Incoming requests"),a.t("Follow quotes and recycler responses"),"account-requests","inbox",()->a.market.load("requests","/requests"));link(a.page,a.t("Orders"),a.t("Track pickup, delivery and settlement"),"home-orders","truck",()->a.market.load("orders","/orders"));
+        section(a.t("Your workspace"));link(a.page,a.t("Offers & chats"),a.t("Review offers and talk to the other party"),"account-requests","inbox",()->a.market.load("requests","/requests"));link(a.page,a.t("Orders"),a.t("Track pickup, delivery and settlement"),"home-orders","truck",()->a.market.load("orders","/orders"));
         if(collector){section(a.t("Recent lots"));lots(false);}else note(a.page,a.t("Your requirements and orders stay connected with the operations team."));
     }
     void lots(boolean full)throws Exception{

@@ -53,7 +53,7 @@ export async function directoryReview(request,env,user,f,p){
  (g,a)=>stmt(env,`INSERT INTO notifications(id,user_id,kind,title,body,resource_id,created_at) SELECT ?,?,'facility.directory','Directory authorization updated',?,?,? WHERE ${g}`,id(),f.owner_user_id,input.status,f.id,time,...a)]);
 }
 const listingFrom=`FROM lot_listings p JOIN lots l ON l.id=p.lot_id JOIN users u ON u.id=p.owner_id`;
-const available=`p.state='posted' AND l.version=p.lot_version AND u.status='active' AND EXISTS(SELECT 1 FROM lot_items i WHERE i.lot_id=l.id AND i.quantity_base>coalesce((SELECT sum(r.quantity_base) FROM reservations r WHERE r.lot_id=l.id AND r.item_id=i.id AND r.state IN ('held','consumed')),0))`;
+const available=`NOT EXISTS(SELECT 1 FROM lot_deletions WHERE lot_id=l.id) AND p.state='posted' AND l.version=p.lot_version AND u.status='active' AND EXISTS(SELECT 1 FROM lot_items i WHERE i.lot_id=l.id AND i.quantity_base>coalesce((SELECT sum(r.quantity_base) FROM reservations r WHERE r.lot_id=l.id AND r.item_id=i.id AND r.state IN ('held','consumed')),0))`;
 export async function postedLot(env,record){return stmt(env,`SELECT l.*,p.version AS listing_version,p.latitude,p.longitude,p.asking_rates_json,u.display_name ${listingFrom} WHERE l.id=? AND ${available}`,requireId(record)).first();}
 async function listingData(env,lot){const items=await rows(stmt(env,`SELECT i.*,coalesce((SELECT sum(r.quantity_base) FROM reservations r WHERE r.lot_id=i.lot_id AND r.item_id=i.id AND r.state IN ('held','consumed')),0) AS allocated FROM lot_items i WHERE lot_id=?`,lot.id));
  return {id:lot.id,title:lot.title,locality:lot.locality,aggregator:lot.display_name,lotVersion:lot.version,listingVersion:lot.listing_version,location:lot.latitude===null?null:{latitude:lot.latitude,longitude:lot.longitude},items:items.map(i=>({id:i.id,name:i.name,description:i.description,broadCode:i.broad_code,condition:i.condition,unit:i.unit,quantity:quantity(i.quantity_base,i.unit),available:quantity(Math.max(0,i.quantity_base-i.allocated),i.unit),askingRate:rupees(JSON.parse(lot.asking_rates_json||'{}')[i.id]??null)})),fileIds:(await rows(stmt(env,'SELECT file_id FROM lot_files WHERE lot_id=?',lot.id))).map(x=>x.file_id)};
@@ -61,7 +61,7 @@ async function listingData(env,lot){const items=await rows(stmt(env,`SELECT i.*,
 async function listing(request,env,user,record,photo){
  if(request.method==='GET'){
   if(record){const own=await stmt(env,'SELECT l.*,p.version AS listing_version,p.latitude,p.longitude,p.asking_rates_json,u.display_name FROM lots l JOIN users u ON u.id=l.owner_user_id LEFT JOIN lot_listings p ON p.lot_id=l.id WHERE l.id=? AND l.owner_user_id=?',requireId(record),user.id).first();
-   const lot=own||await postedLot(env,record);if(!lot||(user.role!=='recycler'&&!own))fail('Posted lot not found.',404);
+   const lot=own||await postedLot(env,record);if(!lot||await stmt(env,'SELECT 1 FROM lot_deletions WHERE lot_id=?',record).first()||(user.role!=='recycler'&&!own))fail('Posted lot not found.',404);
    if(photo){requireId(photo);const f=await stmt(env,"SELECT f.* FROM lot_files lf JOIN files f ON f.id=lf.file_id WHERE lf.lot_id=? AND f.id=? AND f.state='ready'",record,photo).first();if(!f)fail('Photo not found.',404);const object=await env.ACCOUNT_BUCKET.get(f.object_key);if(!object)fail('Photo unavailable.',404);return new Response(object.body,{headers:{'Content-Type':f.mime_type,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});}
    const q=await origin(env,user,filters(request)),data=await listingData(env,lot);data.distanceKm=distanceKm(q.point,data.location);const p=own?await stmt(env,'SELECT * FROM lot_listings WHERE lot_id=?',record).first():null;return json({lot:data,origin:originData(q),listing:own?{version:p?.version||0,state:p?.state||'draft',current:p?.lot_version===lot.version}:null});
   }
@@ -74,6 +74,7 @@ async function listing(request,env,user,record,photo){
  requireRole(user,'collector');if(request.method!=='PUT'||!record||photo)fail('Method not supported.',405);requireId(record);
  const c=await begin(request,env,{...user,actor:'user:'+user.id});if(c.previous)return c.previous;const i=c.input;
  const lot=await stmt(env,'SELECT * FROM lots WHERE id=? AND owner_user_id=?',record,user.id).first();if(!lot)fail('Lot not found.',404);
+ if(await stmt(env,'SELECT 1 FROM lot_deletions WHERE lot_id=?',record).first())fail('This lot was deleted.',410);
  if(lot.version!==i.lotVersion)fail('Save and review the latest lot before posting.',409);
  if(!['posted','paused','withdrawn'].includes(i.state))fail('Choose a listing status.');
  const point=coordinates(i.location);

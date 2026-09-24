@@ -29,32 +29,32 @@ jobs:
         env:
           ANDROID_SIGNING_JSON: ${{ secrets.ANDROID_SIGNING_JSON }}
         run: python3 scripts/prepare-android-signing.py
-      - name: Download the actual previously distributed v9 APK
+      - name: Download the actual previously distributed v10 APK
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           repository: orcazen9-png/application-ewaste
-          run-id: 35969309371
-          name: E-Waste-Marketplace-native-v9
+          run-id: 35977245922
+          name: E-Waste-Marketplace-native-v10
           path: previous-release
       - name: Build the signed native release and test APK
         working-directory: native-android
         run: |
           set -euo pipefail
-          bash ./gradlew assembleRelease -PaccountFoundation=true -PinvitationSignIn=true -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=10 -PappVersionName=3.6-native-prices-location --no-daemon
-          bash ./gradlew assembleDebug assembleDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=10 --no-daemon
+          bash ./gradlew assembleRelease -PaccountFoundation=true -PinvitationSignIn=true -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=11 -PappVersionName=3.7-native-chat-delete --no-daemon
+          bash ./gradlew assembleDebug assembleDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=11 --no-daemon
       - name: Verify release certificate, package and native implementation
         run: |
           set -euo pipefail
           sdktools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           mkdir -p apk-download upgrade-baseline
           apk=native-android/app/build/outputs/apk/release/app-release.apk
-          cp previous-release/E-Waste-Marketplace-native-v9.apk upgrade-baseline/app.apk
+          cp previous-release/E-Waste-Marketplace-native-v10.apk upgrade-baseline/app.apk
           cp native-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk upgrade-baseline/tests.apk
           "$sdktools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
           "$sdktools/aapt" dump badging "$apk" >> apk-download/verification.txt
           "$sdktools/apksigner" verify --print-certs upgrade-baseline/app.apk > upgrade-baseline/certificate.txt
-          grep "package: name='com.ewaste.marketplace.collector' versionCode='10' versionName='3.6-native-prices-location'" apk-download/verification.txt
+          grep "package: name='com.ewaste.marketplace.collector' versionCode='11' versionName='3.7-native-chat-delete'" apk-download/verification.txt
           python3 - <<'PY'
           import pathlib,re
           expected=pathlib.Path('native-android/signing-certificate.sha256').read_text().strip().lower()
@@ -64,14 +64,14 @@ jobs:
           PY
           if grep -E 'application-testOnly|application-debuggable' apk-download/verification.txt; then exit 1; fi
           if grep -R -E 'import android.webkit|com.getcapacitor' native-android/app/src/main; then exit 1; fi
-          cp "$apk" apk-download/E-Waste-Marketplace-native-v10.apk
+          cp "$apk" apk-download/E-Waste-Marketplace-native-v11.apk
           sha256sum apk-download/*.apk >> apk-download/verification.txt
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Actual v9 to v10 installation, data preservation and native role tests
+      - name: Actual v10 to v11 installation, data preservation and native role tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -86,7 +86,7 @@ jobs:
             adb pull /sdcard/release-signin.xml apk-download/release-signin.xml
             grep -q 'Sign up' apk-download/release-signin.xml
             adb exec-out screencap -p > apk-download/native-signin.png
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=10 -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=11 -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest,com.ewaste.nativeapp.ChatDeletionTest --no-daemon
             adb pull /sdcard/ui-home.png apk-download/ui-home.png
             adb pull /sdcard/ui-photos.png apk-download/ui-photos.png
             adb pull /sdcard/ui-details.png apk-download/ui-details.png
@@ -104,36 +104,39 @@ jobs:
             adb pull /sdcard/ui-directory.png apk-download/ui-directory.png
             adb pull /sdcard/ui-posted-lots.png apk-download/ui-posted-lots.png
             adb pull /sdcard/ui-asking-price.png apk-download/ui-asking-price.png
+            adb pull /sdcard/ui-conversation.png apk-download/ui-conversation.png
+            adb pull /sdcard/ui-deleted-lots.png apk-download/ui-deleted-lots.png
             adb shell wm size 1080x1920
             adb shell wm density 480
             adb shell settings put system font_scale 1.3
             adb install -r native-android/app/build/outputs/apk/debug/app-debug.apk
             adb install -r -t native-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee apk-download/compact-ui-test.txt
-            grep -q 'OK (4 tests)' apk-download/compact-ui-test.txt
+            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest,com.ewaste.nativeapp.ChatDeletionTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee apk-download/compact-ui-test.txt
+            grep -q 'OK (6 tests)' apk-download/compact-ui-test.txt
             adb pull /sdcard/compact-photos.png apk-download/compact-photos.png
             adb pull /sdcard/compact-earnings.png apk-download/compact-earnings.png
             adb pull /sdcard/compact-facility-business.png apk-download/compact-facility-business.png
             adb pull /sdcard/compact-facility-documents.png apk-download/compact-facility-documents.png
             adb pull /sdcard/compact-suggested-materials.png apk-download/compact-suggested-materials.png
             adb pull /sdcard/compact-directory.png apk-download/compact-directory.png
+            adb pull /sdcard/compact-conversation.png apk-download/compact-conversation.png
             adb shell wm size reset
             adb shell wm density reset
             adb shell settings put system font_scale 1.0
       - uses: actions/upload-artifact@v4
         with:
-          name: E-Waste-Marketplace-native-v10
+          name: E-Waste-Marketplace-native-v11
           path: apk-download/
           if-no-files-found: error
       - name: Publish a direct APK download
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create native-v10-demo apk-download/E-Waste-Marketplace-native-v10.apk apk-download/verification.txt apk-download/native-signin.png apk-download/ui-home.png apk-download/ui-photos.png apk-download/ui-earnings.png apk-download/ui-welcome.png apk-download/ui-roles.png apk-download/ui-signup.png apk-download/ui-login.png apk-download/ui-recycler-home.png apk-download/ui-facility-business.png apk-download/ui-facility-services.png apk-download/ui-facility-documents.png apk-download/ui-facility-pending.png --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "E-Waste Marketplace — native accounts demo v10" --notes-file docs/native-v10-release.md --prerelease
+          gh release create native-v11-demo apk-download/E-Waste-Marketplace-native-v11.apk apk-download/verification.txt apk-download/native-signin.png apk-download/ui-home.png apk-download/ui-photos.png apk-download/ui-earnings.png apk-download/ui-welcome.png apk-download/ui-roles.png apk-download/ui-signup.png apk-download/ui-login.png apk-download/ui-recycler-home.png apk-download/ui-facility-business.png apk-download/ui-facility-services.png apk-download/ui-facility-documents.png apk-download/ui-facility-pending.png --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "E-Waste Marketplace — native accounts demo v11" --notes-file docs/native-v11-release.md --prerelease
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native-v10-diagnostics
+          name: native-v11-diagnostics
           path: |
             native-android/app/build/reports/androidTests/
             native-android/app/build/outputs/androidTest-results/

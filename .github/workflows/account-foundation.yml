@@ -60,7 +60,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           script: |
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest,com.ewaste.nativeapp.ChatDeletionTest --no-daemon
             timeout 20s adb pull /sdcard/account-draft.png native-android/native-account-draft.png
             timeout 20s adb pull /sdcard/market-order.png native-android/native-market-order.png
             timeout 20s adb pull /sdcard/logistics.png native-android/native-logistics.png
@@ -81,19 +81,22 @@ jobs:
             timeout 20s adb pull /sdcard/ui-directory.png native-android/ui-directory.png
             timeout 20s adb pull /sdcard/ui-posted-lots.png native-android/ui-posted-lots.png
             timeout 20s adb pull /sdcard/ui-asking-price.png native-android/ui-asking-price.png
+            timeout 20s adb pull /sdcard/ui-conversation.png native-android/ui-conversation.png
+            timeout 20s adb pull /sdcard/ui-deleted-lots.png native-android/ui-deleted-lots.png
             adb shell wm size 1080x1920
             adb shell wm density 480
             adb shell settings put system font_scale 1.3
             adb install -r native-android/app/build/outputs/apk/debug/app-debug.apk
             adb install -r -t native-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee native-android/compact-ui-test.txt
-            grep -q 'OK (4 tests)' native-android/compact-ui-test.txt
+            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest,com.ewaste.nativeapp.ChatDeletionTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee native-android/compact-ui-test.txt
+            grep -q 'OK (6 tests)' native-android/compact-ui-test.txt
             timeout 20s adb pull /sdcard/compact-photos.png native-android/compact-photos.png
             timeout 20s adb pull /sdcard/compact-earnings.png native-android/compact-earnings.png
             timeout 20s adb pull /sdcard/compact-facility-business.png native-android/compact-facility-business.png
             timeout 20s adb pull /sdcard/compact-facility-documents.png native-android/compact-facility-documents.png
             timeout 20s adb pull /sdcard/compact-suggested-materials.png native-android/compact-suggested-materials.png
             timeout 20s adb pull /sdcard/compact-directory.png native-android/compact-directory.png
+            timeout 20s adb pull /sdcard/compact-conversation.png native-android/compact-conversation.png
             adb shell wm size reset
             adb shell wm density reset
             adb shell settings put system font_scale 1.0

@@ -237,6 +237,17 @@ public class AccountActivity extends AppCompatActivity {
             sync.refresh(owner,auth);return count;
         },count->{try{if(draft!=null)draft=store.draft(owner,draft.getString("id"));render();Toast.makeText(this,t("Drafts synced"),Toast.LENGTH_SHORT).show();}catch(Exception e){showError(e);}});
     }
+    void deleteLot(JSONObject lot){
+        new AlertDialog.Builder(this).setTitle(t("Delete this lot?")).setMessage(t("Remove it from My lots and recycler discovery. Existing conversations and transaction records are kept. Active orders must be resolved first."))
+        .setPositiveButton(t("Delete lot"),(dialog,which)->{try{
+            String id=lot.getString("id"),owner=account();JSONObject saved=store.draft(owner,id);if(saved==null)return;
+            if(store.hasPendingSave(owner,id)){showError(new Exception(t("Sync the pending save before deleting this lot.")));return;}
+            if(saved.optInt("serverVersion")==0){store.removeDraft(owner,id);draft=null;screen="lots";render();return;}
+            JSONObject input=market.input(saved.optInt("serverVersion"));market.change("/lots/"+id,"DELETE",input,"deleted-lot");
+        }catch(Exception e){showError(e);}}).setNegativeButton(t("Back"),null).show();
+    }
+    @Override protected void onResume(){super.onResume();if(market!=null)market.chat.resume();}
+    @Override protected void onPause(){if(market!=null)market.chat.pause();super.onPause();}
     void reviewConflict(){
         String owner=account(),auth=token(),lotId=draft.optString("id");
         task(()->api.request("GET","/lots/"+lotId,auth,null),result->{

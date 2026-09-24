@@ -64,7 +64,7 @@ final class LotEditor {
         JSONArray lines=a.draft.getJSONArray("items");for(int i=0;i<lines.length();i++){JSONObject item=lines.getJSONObject(i);ui.keyValue(card,item.optString("name",category(item))+" · "+category(item),item.optString("quantity","")+" "+a.t(item.optString("unit")));}
         if(!a.draft.optString("notes").isEmpty())ui.note(card,a.draft.optString("notes"));ui.action(card,a.t("Edit details"),"lot-edit-details",()->{a.editStep=1;a.render();},0);ui.action(a.page,a.t("Edit photos"),"lot-edit-photos",()->{a.editStep=0;a.render();},0);
         JSONObject saved=a.store.draft(a.account(),a.draft.getString("id"));if(saved.optString("syncState").equals("synced")){ui.pill(a.page,a.t("Saved online"),AccountDesign.SOFT);ui.space(a.page,12);ui.action(a.page,a.t("Post for recyclers"),"lot-post",()->a.market.load("listing","/listings/"+a.draft.optString("id")),1);ui.action(a.page,a.t("Find recycler requirements for this line"),"account-find-matches",a.market::findMatches,1);}
-        ui.note(a.page,a.t("Changes are saved on this phone as you type."));
+        ui.action(a.page,a.t("Delete lot"),"lot-delete",()->a.deleteLot(a.draft),0);ui.note(a.page,a.t("Changes are saved on this phone as you type."));
     }
     boolean validDetails(){try{
         JSONObject current=line();String quantity=current.optString("quantity");if(current.isNull("broadCode")||current.optString("broadCode").isEmpty())throw new Exception(a.t("Choose a category for this material."));

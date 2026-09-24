@@ -101,7 +101,7 @@ public final class AccountStore extends SQLiteOpenHelper {
         photos.put(fileId);save(account,saved);
     }
     public synchronized void importServer(String account,JSONObject remote)throws Exception {
-        String id=validId(remote.getString("id"));JSONObject local=draft(account,id);
+        String id=validId(remote.getString("id"));if(!remote.isNull("deletedAt")&&!remote.optString("deletedAt").isEmpty()){removeDraft(account,id);return;}JSONObject local=draft(account,id);
         if(local!=null&&!local.optString("syncState").equals("synced"))return;
         JSONObject clean=payload(remote);clean.remove("version");clean.remove("createdAt");clean.remove("updatedAt");clean.remove("status");
         if(local==null)save(account,clean);
@@ -112,6 +112,13 @@ public final class AccountStore extends SQLiteOpenHelper {
             db.delete("outbox","account_id=? AND lot_id=?",new String[]{account,id});
             db.execSQL("UPDATE drafts SET state='synced' WHERE account_id=? AND id=?",new Object[]{account,id});
             importServer(account,remote);db.setTransactionSuccessful();
+        }finally{db.endTransaction();}
+    }
+    public synchronized boolean hasPendingSave(String account,String id){validId(account);validId(id);try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM outbox WHERE account_id=? AND lot_id=?",new String[]{account,id})){return c.moveToFirst();}}
+    public synchronized void removeDraft(String account,String id){
+        validId(account);validId(id);SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{
+            db.delete("outbox","account_id=? AND lot_id=?",new String[]{account,id});db.delete("drafts","account_id=? AND id=?",new String[]{account,id});
+            db.delete("market_cache","account_id=? AND cache_key=?",new String[]{account,"/listings/"+id});db.setTransactionSuccessful();
         }finally{db.endTransaction();}
     }
     public synchronized boolean uploaded(String account,String fileId){validId(account);validId(fileId);try(Cursor c=getReadableDatabase().rawQuery("SELECT 1 FROM uploaded_files WHERE account_id=? AND file_id=?",new String[]{account,fileId})){return c.moveToFirst();}}

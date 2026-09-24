@@ -1,3 +1,4 @@
+import {begin,commit} from './commands.js';
 import {CATALOG} from '../../dist/waste-catalog.js';
 import {body, canonical, fail, hash, id, json, now, requireId, requireRole, rows, text} from './common.js';
 
@@ -40,7 +41,7 @@ function normalize(input) {
 }
 
 function project(lot, items, files) {
-  return {id: lot.id, title: lot.title, locality: lot.locality, notes: lot.notes, status: lot.status, version: lot.version,
+  return {deletedAt:lot.deleted_at||null,id: lot.id, title: lot.title, locality: lot.locality, notes: lot.notes, status: lot.status, version: lot.version,
     appliedPhotos:JSON.parse(lot.assessment_photos_json||'{}'),taxonomyVersion: CATALOG.version, createdAt: lot.created_at, updatedAt: lot.updated_at, fileIds: files.map(f => f.file_id),
     items: items.map(i => ({id: i.id, name:i.name, broadCode: i.broad_code, detailedCode: i.detailed_code, description: i.description,
       condition: i.condition, unit: i.unit, quantity: i.quantity_base === null ? null : i.unit === 'kg'
@@ -64,17 +65,31 @@ export async function lotRoute(request, env, user, lotId) {
   if (!lotId && request.method === 'GET') {
     const url = new URL(request.url), cursor = url.searchParams.get('after') || '';
     if (cursor) requireId(cursor);
-    const lots = await rows(env.DB.prepare('SELECT * FROM lots WHERE owner_user_id=? AND id>? ORDER BY id LIMIT 51').bind(user.id, cursor));
+    const lots = await rows(env.DB.prepare('SELECT l.*,d.deleted_at FROM lots l LEFT JOIN lot_deletions d ON d.lot_id=l.id WHERE l.owner_user_id=? AND l.id>? ORDER BY l.id LIMIT 51').bind(user.id, cursor));
     const page = lots.slice(0,50);
-    return json({lots: await projectPage(env, page), nextCursor: lots.length > 50 ? page.at(-1).id : null});
+    return json({lots: await projectPage(env, page.filter(l=>!l.deleted_at)),deletedLots:page.filter(l=>l.deleted_at).map(l=>l.id), nextCursor: lots.length > 50 ? page.at(-1).id : null});
   }
   requireId(lotId);
-  const existing = await env.DB.prepare('SELECT * FROM lots WHERE id=?').bind(lotId).first();
+  const existing = await env.DB.prepare('SELECT l.*,d.deleted_at FROM lots l LEFT JOIN lot_deletions d ON d.lot_id=l.id WHERE l.id=?').bind(lotId).first();
   if (existing && existing.owner_user_id !== user.id) fail('Draft not found.', 404);
   if (request.method === 'GET') {
     if (!existing) fail('Draft not found.', 404);
     return json({lot: (await projectPage(env, [existing]))[0]});
   }
+  if(request.method==='DELETE'){
+    const c=await begin(request,env,{...user,actor:'user:'+user.id});if(c.previous)return c.previous;
+    if(!existing)fail('Lot not found.',404);
+    if(existing.deleted_at)return json({id:lotId,deleted:true});
+    if(existing.version!==c.input.expectedVersion)fail('This lot changed. Refresh before deleting.',409);
+    if(await env.DB.prepare("SELECT 1 FROM reservations WHERE lot_id=? AND state='held'").bind(lotId).first())fail('Resolve the active order before deleting this lot.',409);
+    const time=now();return commit(env,c,env.DB.prepare('INSERT INTO lot_deletions SELECT id,?,? FROM lots WHERE id=? AND owner_user_id=? AND version=?').bind(time,user.id,lotId,user.id,c.input.expectedVersion),{id:lotId,deleted:true},[
+      (g,a)=>env.DB.prepare(`UPDATE lot_listings SET state='withdrawn',version=version+1,updated_at=? WHERE lot_id=? AND ${g}`).bind(time,lotId,...a),
+      (g,a)=>env.DB.prepare(`INSERT INTO market_events SELECT lower(hex(randomblob(16))),id,?,'withdrawn','Aggregator deleted this lot',? FROM supply_requests WHERE lot_id=? AND state IN ('submitted','clarification') AND ${g}`).bind(user.id,time,lotId,...a),
+      (g,a)=>env.DB.prepare(`UPDATE supply_requests SET state='withdrawn',version=version+1,updated_at=? WHERE lot_id=? AND state IN ('submitted','clarification') AND ${g}`).bind(time,lotId,...a),
+      (g,a)=>env.DB.prepare(`INSERT INTO audit_events(id,actor_id,action,resource_id,resource_version,created_at) SELECT ?,?,'lot.deleted',?,?,? WHERE ${g}`).bind(id(),user.id,lotId,existing.version,time,...a)
+    ]);
+  }
+  if(existing?.deleted_at)fail('This lot was deleted. Refresh your lots.',410);
   if (request.method !== 'PUT') fail('Method not supported.', 405);
   const input = await body(request), normalized = normalize(input);
   const payloadHash = await hash(canonical({path: lotId, expectedVersion: input.expectedVersion, ...normalized}));
