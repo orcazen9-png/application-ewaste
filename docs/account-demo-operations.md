@@ -4,6 +4,12 @@ The APK uses the separate `ewaste-accounts-demo` Cloudflare Worker and database.
 
 ERP: https://ewaste-accounts-demo.ewaste-marketplace.workers.dev/operations.html
 
+## Login and signup
+
+Native v7 starts with Log in / Sign up and explicit Aggregator / Recycler selection. Username/password signup is enabled on this demo host; no SMS provider is needed. Each role remains attached to its own account. New recycler facilities are unverified and cannot publish active buying requirements until separately reviewed or granted explicit time-limited demo access.
+
+Existing users should choose Continue as Aggregator/Recycler, then Profile → Set up username and password to keep the same records. Password recovery is not configured; keep passwords safe. Invitations remain an alternative for an existing identity. Full behavior and limitations are in `account-authentication.md`.
+
 ## Invitations
 
 Run commands from the repository using an authorized Cloudflare CLI session. The CLI writes private files under ignored `work/invitations/`. It sends only token hashes to D1. Do not publish invitation files or include them in release artifacts.
@@ -16,7 +22,7 @@ node scripts/account-invite.mjs role=operations_finance 'name=Freedom Value oper
 
 Roles are server-issued. `viewer` can inspect ERP, `operations` manages logistics, `finance` records settlements, and `operations_finance` combines the latter two. Issuing a recycler invitation does not verify its facility or automatically grant demo trading access.
 
-An invitation is usable once and expires after seven days. A personal session lasts 30 days; a staff session lasts eight hours. Logging out revokes that session. For another sign-in, reissue for the existing actor printed by the original command:
+An invitation is usable once and expires after seven days. A personal session lasts 30 days; a staff session lasts eight hours. Logging out revokes that session. If the user has not set a username/password, reissue for the existing actor printed by the original command:
 
 ```powershell
 node scripts/account-invite.mjs role=collector 'name=Collector name' actor=user:EXISTING-UUID
@@ -37,7 +43,7 @@ Replace the actor value with the exact existing actor. Reissue validates the cur
 
 ## Release and recovery evidence
 
-`accounts-release.yml` gates v6 publication on backend checks, the permanent signing certificate, actual previous-v5 installation and v6 replacement with local-data/keystore preservation, and Android 16 native tests. The upgrade check includes draft/photo data, encrypted pairing, the personal session and an account cache record. Invitation codes, Cloudflare credentials, signing keys and Gemini keys must never appear in public artifacts.
+`accounts-release.yml` gates v7 publication on backend checks, the permanent signing certificate, actual previous-v6 installation and v7 replacement with local-data/keystore preservation, and Android 16 native tests. The upgrade check includes draft/photo data, encrypted pairing, the personal session and an account cache record. Invitation codes, Cloudflare credentials, signing keys and Gemini keys must never appear in public artifacts.
 
 A remote SQL export has been restored in isolated SQLite with integrity/foreign-key checks and reconstruction/hash verification of private files. Exports contain private records and credential hashes; keep them under private access controls. That rehearsal does not establish a scheduled backup policy or authorize replacing the live database.
 
