@@ -65,6 +65,7 @@ test('ERP, earnings and notifications use the same ledger and isolate personal i
 });
 test('ERP attention queues and recycler/state filters drill into the same pending transfers',async t=>{
   const f=await finance(t);await f.received();const inv=await f.invoice();await f.approve(inv);await f.payment(inv,'2500');
+  const earnings=await f.ok(f.c,'/earnings');assert.equal(earnings.expected,'10000.00');assert.equal(earnings.pending,'2500.00');assert.equal(earnings.outstanding,'10000.00');assert.equal(earnings.confirmed,'0.00');
   const d=await f.okOps('/analytics?queue=confirmations&recycler='+f.r.id+'&state=accepted');
   assert.equal(d.totals.total,1);assert.equal(d.attention.confirmations,1);assert.equal(d.orders[0].id,f.order);assert.equal(d.requests.find(x=>x.state==='accepted').count,1);assert.equal(d.categories[0].code,'B01');
   const noInvoices=await f.okOps('/analytics?queue=invoices');assert.equal(noInvoices.totals.total,0);assert.equal(noInvoices.attention.confirmations,1);
