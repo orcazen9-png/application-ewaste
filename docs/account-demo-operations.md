@@ -37,7 +37,7 @@ Replace the actor value with the exact existing actor. Reissue validates the cur
 
 ## Release and recovery evidence
 
-`accounts-release.yml` gates v5 publication on backend checks, the permanent signing certificate, actual previous-v4 installation and v5 replacement with local-data/keystore preservation, and Android 16 native tests. The upgrade check includes draft/photo data, encrypted pairing, the personal session and an account cache record. Invitation codes, Cloudflare credentials, signing keys and Gemini keys must never appear in public artifacts.
+`accounts-release.yml` gates v6 publication on backend checks, the permanent signing certificate, actual previous-v5 installation and v6 replacement with local-data/keystore preservation, and Android 16 native tests. The upgrade check includes draft/photo data, encrypted pairing, the personal session and an account cache record. Invitation codes, Cloudflare credentials, signing keys and Gemini keys must never appear in public artifacts.
 
 A remote SQL export has been restored in isolated SQLite with integrity/foreign-key checks and reconstruction/hash verification of private files. Exports contain private records and credential hashes; keep them under private access controls. That rehearsal does not establish a scheduled backup policy or authorize replacing the live database.
 
