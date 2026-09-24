@@ -73,9 +73,14 @@ final class AccountDesign {
         if(collector){section(a.t("Recent lots"));lots(false);}else note(a.page,a.t("Your requirements and orders stay connected with the operations team."));
     }
     void lots(boolean full)throws Exception{
-        JSONArray lots=a.store.drafts(a.account());if(full){heading(a.t("My lots"),a.t("Your saved collection, ready for the next step."));action(a.page,a.t("Create a lot"),"account-create",a::createDraft,1);action(a.page,a.t("Sync saved drafts"),"account-sync",a::syncAll,0);space(a.page,12);}
+        JSONArray lots=a.store.drafts(a.account());if(full){heading(a.t("My lots"),compact()?"":a.t("Your saved collection, ready for the next step."));action(a.page,a.t("Create a lot"),"account-create",a::createDraft,1);action(a.page,a.t("Sync saved drafts"),"account-sync",a::syncAll,0);space(a.page,12);}
         if(lots.length()==0){LinearLayout empty=card(a.page,WHITE);empty.addView(text(a.t("Your first lot starts here"),18,INK,true));note(empty,a.t("Take a photo or upload one to save your first lot."));return;}
-        for(int i=0;i<(full?lots.length():Math.min(3,lots.length()));i++){JSONObject lot=lots.getJSONObject(i);String id=lot.getString("id"),title=lot.optString("title"),state=lot.optString("syncState");link(a.page,title.isEmpty()?a.t("Untitled lot"):title,a.t(state.equals("synced")?"Saved online":state.equals("conflict")?"Review needed":"Saved on this phone"),"account-open-"+id,"box",()->{try{a.draft=a.store.draft(a.account(),id);a.itemIndex=0;a.editStep=2;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}});}
+        for(int i=0;i<(full?lots.length():Math.min(3,lots.length()));i++){
+            JSONObject lot=lots.getJSONObject(i);String id=lot.getString("id"),title=lot.optString("title"),state=lot.optString("syncState");
+            LinearLayout item=card(a.page,WHITE);
+            link(item,title.isEmpty()?a.t("Untitled lot"):title,a.t(state.equals("synced")?"Saved online":state.equals("conflict")?"Review needed":"Saved on this phone"),"account-open-"+id,"box",()->{try{a.draft=a.store.draft(a.account(),id);a.itemIndex=0;a.editStep=2;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}});
+            Button delete=action(item,a.t("Delete lot"),"account-delete-"+id,()->a.deleteLot(lot),0);delete.setTextColor(0xffa52b2b);
+        }
     }
     ImageView iconView(String icon,int color,int size){ImageView v=new ImageView(a);v.setImageDrawable(new Symbol(icon,color,dp(size)));v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);return v;}
     static final class Symbol extends Drawable {

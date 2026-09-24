@@ -83,6 +83,7 @@ jobs:
             timeout 20s adb pull /sdcard/ui-asking-price.png native-android/ui-asking-price.png
             timeout 20s adb pull /sdcard/ui-conversation.png native-android/ui-conversation.png
             timeout 20s adb pull /sdcard/ui-deleted-lots.png native-android/ui-deleted-lots.png
+            timeout 20s adb pull /sdcard/ui-lot-delete-button.png native-android/ui-lot-delete-button.png
             adb shell wm size 1080x1920
             adb shell wm density 480
             adb shell settings put system font_scale 1.3
@@ -97,6 +98,7 @@ jobs:
             timeout 20s adb pull /sdcard/compact-suggested-materials.png native-android/compact-suggested-materials.png
             timeout 20s adb pull /sdcard/compact-directory.png native-android/compact-directory.png
             timeout 20s adb pull /sdcard/compact-conversation.png native-android/compact-conversation.png
+            timeout 20s adb pull /sdcard/compact-lot-delete-button.png native-android/compact-lot-delete-button.png
             adb shell wm size reset
             adb shell wm density reset
             adb shell settings put system font_scale 1.0
