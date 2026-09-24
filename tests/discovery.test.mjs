@@ -51,5 +51,41 @@ test('authorized directory requires consent, current source verification and rev
  await f.okOps('/facilities/'+facility+'/authorization','POST',input);
  assert.equal((await f.okOps('/facilities/'+facility+'/authorization','POST',input)).replayed,true);
  let directory=await f.ok(f.c,'/directory?lat=19.08&lon=72.88&radius=10&material=B01&pickup=true');assert.equal(directory.recyclers.length,1);assert.equal(directory.recyclers[0].documentIds,undefined);assert.equal(directory.recyclers[0].authorization.status,'verified');
+  const collectorLot=await f.lot(f.c,{locality:'Virar'});await publish(f,f.c,collectorLot,{location:{latitude:19.46,longitude:72.81}});
+ const fromSaved=await f.ok(f.c,'/directory');assert.equal(fromSaved.origin.label,'Virar');assert.equal(fromSaved.recyclers.length,1);assert.ok(fromSaved.recyclers[0].distanceKm>40);
+ const detail=await f.ok(f.c,'/directory/'+facility+'?radius=1');assert.equal(detail.recycler.locality,'Mumbai');assert.ok(detail.recycler.distanceKm>40);
+ assert.equal((await f.ok(f.c,'/directory?radius=10')).recyclers.length,0);
  await f.env.DB.prepare("UPDATE facility_profiles SET submitted_version=3,version=3 WHERE facility_id=?").bind(facility).run();assert.equal((await f.ok(f.c,'/directory')).recyclers.length,0,'new submission invalidates prior government-source review');
+});
+
+test('asking rates are exact, owner-controlled, versioned and preserved for older clients',async t=>{
+ const f=await fixture(t),c=await f.user(),r=await f.user('recycler'),other=await f.user(),l=await f.lot(c);
+ const input={commandId:id(),expectedVersion:0,lotVersion:1,state:'posted',sharePhotos:true,askingRates:{[l.itemId]:'125.35'}};
+ await f.ok(c,'/listings/'+l.id,'PUT',input);assert.equal((await f.ok(c,'/listings/'+l.id,'PUT',input)).replayed,true);
+ assert.equal((await f.ok(r,'/listings/'+l.id)).lot.items[0].askingRate,'125.35');
+ assert.equal((await f.call(other,'/listings/'+l.id,'PUT',{...input,commandId:id(),expectedVersion:1})).status,404);
+ assert.equal((await f.call(r,'/listings/'+l.id,'PUT',{...input,commandId:id(),expectedVersion:1})).status,403);
+ for(const rate of ['-1','1.234','0','100000000','NaN'])assert.equal((await f.call(c,'/listings/'+l.id,'PUT',{...input,commandId:id(),expectedVersion:1,askingRates:{[l.itemId]:rate}})).status,400);
+ assert.equal((await f.call(c,'/listings/'+l.id,'PUT',{...input,commandId:id(),expectedVersion:1,askingRates:{[id()]:'40'}})).status,400);
+ await publish(f,c,l,{expectedVersion:1});assert.equal((await f.ok(r,'/listings/'+l.id)).lot.items[0].askingRate,'125.35','legacy client preserves rate');
+ const update={...input,commandId:id(),expectedVersion:2,askingRates:{[l.itemId]:'130'}};await f.ok(c,'/listings/'+l.id,'PUT',update);
+ assert.equal((await f.call(c,'/listings/'+l.id,'PUT',{...update,commandId:id()})).status,409);
+ assert.equal((await f.ok(r,'/listings/'+l.id)).lot.items[0].askingRate,'130.00');
+ await publish(f,c,l,{expectedVersion:3,askingRates:{}});assert.equal((await f.ok(r,'/listings/'+l.id)).lot.items[0].askingRate,null);
+});
+
+test('discovery shows remote and unlocated lots by default, sorts nearby first and uses viewer facility origin',async t=>{
+ const f=await fixture(t),c=await f.user(),r=await f.user('recycler');
+ const local=await f.lot(c,{locality:'Virar'}),far=await f.lot(c,{locality:'Pune'}),unknown=await f.lot(c,{locality:'Thane'});
+ await publish(f,c,local,{location:{latitude:19.46,longitude:72.81}});
+ await publish(f,c,far,{location:{latitude:18.52,longitude:73.85}});
+ await publish(f,c,unknown,{location:null});
+ const profile={locality:'Navi Mumbai',location:{latitude:19.03,longitude:73.03}};
+ await f.env.DB.prepare("INSERT INTO facility_profiles VALUES(?,1,'draft',?,0,NULL,?)").bind(r.facility,JSON.stringify(profile),new Date().toISOString()).run();
+ const page=await f.ok(r,'/listings');assert.equal(page.origin.label,'Navi Mumbai');assert.equal(page.lots.length,3);assert.equal(page.lots[0].id,local.id);assert.equal(page.lots[2].id,unknown.id);
+ assert.ok(page.lots[0].distanceKm>=50&&page.lots[0].distanceKm<=55);assert.equal(page.lots[0].locality,'Virar');assert.equal(page.lots[0].aggregator,'Test account');assert.equal(page.lots[2].distanceKm,null);
+ const detail=await f.ok(r,'/listings/'+local.id);assert.equal(detail.origin.label,'Navi Mumbai');assert.ok(Math.abs(detail.lot.distanceKm-page.lots[0].distanceKm)<=1);
+ assert.equal((await f.ok(r,'/listings?radius=10')).lots.length,0);
+ assert.equal((await f.ok(r,'/listings?location=off')).lots.every(l=>l.distanceKm===null),true);
+ const remote=await f.ok(r,'/listings/'+far.id+'?lat=19.03&lon=73.03&radius=1');assert.ok(remote.lot.distanceKm>100,'radius filters never make a detail page inaccessible');
 });

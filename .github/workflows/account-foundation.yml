@@ -80,6 +80,7 @@ jobs:
             timeout 20s adb pull /sdcard/ui-suggested-materials.png native-android/ui-suggested-materials.png
             timeout 20s adb pull /sdcard/ui-directory.png native-android/ui-directory.png
             timeout 20s adb pull /sdcard/ui-posted-lots.png native-android/ui-posted-lots.png
+            timeout 20s adb pull /sdcard/ui-asking-price.png native-android/ui-asking-price.png
             adb shell wm size 1080x1920
             adb shell wm density 480
             adb shell settings put system font_scale 1.3

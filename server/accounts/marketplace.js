@@ -153,7 +153,7 @@ async function requestsRoute(request,env,user,record,action){
     const photos=await rows(env.DB.prepare('SELECT file_id FROM lot_files WHERE lot_id=?').bind(s.lot.id));
     if(input.sharePhotos!==true&&photos.length)fail('Confirm sharing these lot photos with the selected recycler.');
     const snapshot={lotTitle:s.lot.title,locality:s.lot.locality,description:s.item.description,condition:s.item.condition,broadCode:s.item.broad_code,detailedCode:s.item.detailed_code,
-      requirement:projectRequirement(r,env),estimatePaise:estimate,estimatedMaterial:rupees(estimate),collectorProposal:rupees(ask??estimate),fileIds:photos.map(f=>f.file_id),reviewedAt:time};
+      publishedAskingRate:listing?rupees(JSON.parse(listing.asking_rates_json||'{}')[s.item.id]??null):null,requirement:projectRequirement(r,env),estimatePaise:estimate,estimatedMaterial:rupees(estimate),collectorProposal:rupees(ask??estimate),fileIds:photos.map(f=>f.file_id),reviewedAt:time};
     const expires=new Date(Math.min(Date.parse(r.valid_until),Date.now()+7*86400000)).toISOString();
     const first=env.DB.prepare(`INSERT INTO supply_requests(id,collector_id,recycler_id,requirement_id,requirement_version,lot_id,lot_version,item_id,quantity_base,unit,mode,ask_paise,snapshot_json,state,version,expires_at,created_at,updated_at,proposed_by,listing_version)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',1,?,?,?,?,?)`).bind(record,seller.id,r.owner_id,r.id,r.version,s.lot.id,s.lot.version,s.item.id,amount,s.item.unit,input.mode,ask,JSON.stringify(snapshot),expires,time,time,user.id,listing?.listing_version??null);

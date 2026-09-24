@@ -85,6 +85,13 @@
       "when": 1790208000009,
       "tag": "0011_discovery_negotiation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1790208000010,
+      "tag": "0012_listing_asking_prices",
+      "breakpoints": true
     }
   ]
 }

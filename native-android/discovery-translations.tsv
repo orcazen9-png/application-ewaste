@@ -76,3 +76,24 @@ Keep existing items	मौजूदा वस्तुएँ रखें	सध
 List these business details in the authorized recycler directory after verification	सत्यापन के बाद ये व्यवसाय विवरण अधिकृत रिसाइकलर सूची में दिखाएँ	पडताळणीनंतर हा व्यवसायाचा तपशील अधिकृत रिसायकलर यादीत दाखवा
 Hide filters	फ़िल्टर छिपाएँ	फिल्टर लपवा
 Material, distance and pickup filters	सामग्री, दूरी और उठान फ़िल्टर	साहित्य, अंतर आणि उचलण्याचे फिल्टर
+Any distance	कितनी भी दूरी	कोणतेही अंतर
+Choose my city or area	मेरा शहर या क्षेत्र चुनें	माझे शहर किंवा परिसर निवडा
+Distance from:	यहाँ से दूरी:	येथून अंतर:
+Selected location	चुना हुआ स्थान	निवडलेले ठिकाण
+Approximate straight-line distance. Open directions for the road route.	सीधी रेखा की अनुमानित दूरी। सड़क मार्ग के लिए दिशाएँ खोलें।	सरळ रेषेतील अंदाजे अंतर. रस्त्याच्या मार्गासाठी दिशानिर्देश उघडा.
+Choose your location to see distances.	दूरी देखने के लिए अपना स्थान चुनें।	अंतर पाहण्यासाठी तुमचे ठिकाण निवडा.
+Distance unavailable	दूरी उपलब्ध नहीं	अंतर उपलब्ध नाही
+straight-line	सीधी दूरी	सरळ अंतर
+Directions	दिशाएँ	दिशानिर्देश
+Your asking price ₹ /	आपकी माँगी कीमत ₹ /	तुमची अपेक्षित किंमत ₹ /
+Optional. This price is negotiable; logistics is separate.	वैकल्पिक। कीमत पर बातचीत हो सकती है; परिवहन अलग है।	ऐच्छिक. किंमतीवर वाटाघाटी होऊ शकतात; वाहतूक वेगळी आहे.
+Aggregator asking price	एग्रीगेटर की माँगी कीमत	संकलकाची अपेक्षित किंमत
+Price on request	कीमत पूछें	किंमत विचारा
+Choose pickup city or area	उठाने का शहर या क्षेत्र चुनें	संकलनाचे शहर किंवा परिसर निवडा
+Choose facility city or area	सुविधा का शहर या क्षेत्र चुनें	सुविधेचे शहर किंवा परिसर निवडा
+Enter a positive asking price with at most two decimal places.	दो दशमलव तक शून्य से अधिक कीमत भरें।	दोन दशांशांपर्यंत शून्यापेक्षा जास्त किंमत भरा.
+Choose location	स्थान चुनें	ठिकाण निवडा
+Confirm location	स्थान की पुष्टि करें	ठिकाणाची खात्री करा
+Area search is unavailable. Use GPS at the location instead.	क्षेत्र खोज उपलब्ध नहीं है। उस स्थान पर GPS इस्तेमाल करें।	परिसर शोध उपलब्ध नाही. त्या ठिकाणी GPS वापरा.
+No location found. Include the city and state, or use GPS.	स्थान नहीं मिला। शहर और राज्य लिखें या GPS इस्तेमाल करें।	ठिकाण सापडले नाही. शहर आणि राज्य लिहा किंवा GPS वापरा.
+Current GPS location	वर्तमान GPS स्थान	सध्याचे GPS ठिकाण
