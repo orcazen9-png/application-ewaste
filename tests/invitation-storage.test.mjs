@@ -10,6 +10,13 @@ async function invite(f,actor,extra={}){
   await f.env.DB.prepare('INSERT INTO invitations(token_hash,actor,expires_at,revoked_at,created_at) VALUES(?,?,?,?,?)').bind(await hash(code),actor,extra.expires||new Date(Date.now()+3600000).toISOString(),extra.revoked||null,now()).run();return code;
 }
 function enable(f){f.env.INVITATIONS_ENABLED='true';f.env.AUTH_RATE_SECRET='test-rate-secret-with-32-characters';f.env.OPS_ENABLED='true';}
+
+test('wrong selected role does not consume an invitation or silently enter the other workspace',async t=>{
+ const f=await fixture(t);enable(f);const c=await f.user(),code=await invite(f,'user:'+c.id);
+ assert.equal((await f.call(c,'/auth/invitation','POST',{code,expectedRole:'recycler'})).status,409);
+ assert.equal((await f.call(c,'/auth/invitation','POST',{code,expectedRole:'ops'})).status,400);
+ const login=await f.ok(c,'/auth/invitation','POST',{code,expectedRole:'collector'});assert.equal(login.user.id,c.id);assert.equal(login.user.role,'collector');
+});
 test('invitation redemption binds role, is single-use and rejects expiry and suspension',async t=>{
   const f=await fixture(t);enable(f);const c=await f.user(),r=await f.user('recycler');
   await f.env.DB.prepare('UPDATE users SET mobile=? WHERE id=?').bind('invited:'+c.id,c.id).run();

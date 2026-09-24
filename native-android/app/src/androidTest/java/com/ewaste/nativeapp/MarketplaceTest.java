@@ -40,6 +40,7 @@ public class MarketplaceTest {
         SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();MarketApi api=new MarketApi();AccountActivity.apiFactory=()->api;
         vault.save(new JSONObject().put("token","ews_"+String.join("",Collections.nCopies(64,"c"))).put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",api.user));
         try(ActivityScenario<AccountActivity> scenario=ActivityScenario.launch(AccountActivity.class)){
+            scenario.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
             idle(scenario);scenario.onActivity(a->a.root.findViewWithTag("account-portfolio").performClick());idle(scenario);
             scenario.onActivity(a->a.root.findViewWithTag("market-edit-"+api.requirement.optString("id")).performClick());idle(scenario);
             scenario.onActivity(a->{((EditText)a.root.findViewWithTag("market-rate")).setText("55.25");((EditText)a.root.findViewWithTag("market-reason")).setText("Updated buying quote");a.root.findViewWithTag("market-save-requirement").performClick();});idle(scenario);
@@ -59,6 +60,7 @@ public class MarketplaceTest {
         api.user.put("id",api.request.getString("collectorId")).put("role","collector");AccountActivity.apiFactory=()->api;
         vault.save(new JSONObject().put("token","ews_"+String.join("",Collections.nCopies(64,"d"))).put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",api.user));
         try(ActivityScenario<AccountActivity> scenario=ActivityScenario.launch(AccountActivity.class)){
+            scenario.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
             idle(scenario);scenario.onActivity(a->a.root.findViewWithTag("account-open-"+api.lot.optString("id")).performClick());
             scenario.onActivity(a->{try{assertEquals("synced",a.store.draft(a.account(),a.draft.getString("id")).getString("syncState"));}catch(Exception e){throw new AssertionError(e);}a.root.findViewWithTag("account-find-matches").performClick();});onView(withText("Find matches")).inRoot(isDialog()).perform(click());idle(scenario);
             scenario.onActivity(a->a.root.findViewWithTag("market-review-"+api.requirement.optString("id")).performClick());
@@ -79,6 +81,7 @@ public class MarketplaceTest {
         };
         api.user.put("role","collector");AccountActivity.apiFactory=()->api;vault.save(new JSONObject().put("token","photo-test-only").put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",api.user));
         try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
             idle(s);s.onActivity(a->{try{a.createDraft();String photo=UUID.randomUUID().toString();try(FileOutputStream out=new FileOutputStream(a.store.photo(a.account(),photo))){out.write(new byte[]{1,2,3});}a.store.attachPhoto(a.account(),a.draft.getString("id"),photo);a.draft=a.store.draft(a.account(),a.draft.getString("id"));a.market.runAssessment(a.draft,null,photo);}catch(Exception e){throw new AssertionError(e);}});idle(s);
             assertEquals(1,uploads[0]);assertEquals(0,lotWrites[0]);onView(withText("Keep manual selection")).inRoot(isDialog()).perform(click());s.onActivity(a->{assertEquals("",a.draft.optString("title"));assertEquals("",a.draft.optJSONArray("items").optJSONObject(0).optString("quantity"));});
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}

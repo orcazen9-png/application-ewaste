@@ -87,8 +87,7 @@ public class AccountFoundationTest {
     @Test public void nativeSignInPhotoDraftAndServerSyncSurviveActivityRecreation()throws Exception {
         SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();vault.clear();FakeApi fake=new FakeApi();AccountActivity.apiFactory=()->fake;
         try(ActivityScenario<AccountActivity> scenario=ActivityScenario.launch(AccountActivity.class)){
-            scenario.onActivity(a->{nativeOnly(a.root);((EditText)a.root.findViewWithTag("account-phone")).setText("9000000001");a.root.findViewWithTag("account-send-code").performClick();});waitIdle(scenario);
-            scenario.onActivity(a->{((EditText)a.root.findViewWithTag("account-code")).setText("123456");a.root.findViewWithTag("account-verify").performClick();});waitIdle(scenario);
+            scenario.onActivity(a->{nativeOnly(a.root);a.root.findViewWithTag("entry-login").performClick();a.root.findViewWithTag("entry-role-collector").performClick();((EditText)a.root.findViewWithTag("entry-username")).setText("collector.demo");((EditText)a.root.findViewWithTag("entry-password")).setText("a long testing password");a.root.findViewWithTag("entry-submit").performClick();});waitIdle(scenario);
             scenario.onActivity(a->{assertEquals(fake.user.optString("id"),a.account());a.root.findViewWithTag("account-create").performClick();
                 assertNull("Photo actions precede the form",a.root.findViewWithTag("account-lot-title"));
                 assertNotNull(a.root.findViewWithTag("account-take-photo"));assertNotNull(a.root.findViewWithTag("account-choose-photo"));
@@ -113,7 +112,7 @@ public class AccountFoundationTest {
         FakeApi()throws Exception{user=new JSONObject().put("id",UUID.randomUUID().toString()).put("role","collector").put("mobile","+919000000001").put("language","en").put("displayName","").put("locality","Mumbai").put("version",1);}
         @Override public JSONObject request(String method,String path,String token,JSONObject body)throws Exception {
             if(path.equals("/auth/challenges"))return new JSONObject().put("challengeId",UUID.randomUUID().toString()).put("resendAfterSeconds",60);
-            if(path.equals("/auth/verify"))return new JSONObject().put("token","ews_"+String.join("",Collections.nCopies(64,"a"))).put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",user);
+            if(path.equals("/auth/login"))return new JSONObject().put("token","ews_"+String.join("",Collections.nCopies(64,"a"))).put("expiresAt",Instant.now().plusSeconds(3600).toString()).put("user",user);
             if(path.equals("/auth/logout"))return new JSONObject().put("signedOut",true);
             if(path.equals("/me"))return new JSONObject().put("user",user).put("facilities",new JSONArray());
             if(path.equals("/lots"))return new JSONObject().put("lots",new JSONArray(lots.values())).put("nextCursor",JSONObject.NULL);

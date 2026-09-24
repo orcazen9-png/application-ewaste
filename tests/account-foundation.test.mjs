@@ -68,13 +68,14 @@ test('account-enabled servers do not expose the legacy shared-workspace write su
   assert.equal((await worker.fetch(new Request('https://app.example/api/health'),env)).status,200);
 });
 
-test('OTP signup stores only a token hash; registered role wins over a later role selection',async t=>{
+test('OTP signup stores only a token hash; a wrong role is rejected without creating another session',async t=>{
   const f=await fixture(t), account=await f.login();
   assert.equal(account.user.role,'collector');assert.match(account.token,/^ews_[a-f0-9]{64}$/);
   const session=await f.env.DB.prepare('SELECT * FROM sessions').first();assert.equal(session.token_hash,await hash(account.token));
   assert.equal((await f.call('/me',{token:account.token})).status,200);
   await f.env.DB.prepare('DELETE FROM auth_rate_limits').run();
-  const second=await f.login('9000000001','recycler');assert.equal(second.user.id,account.user.id);assert.equal(second.user.role,'collector');
+  const challengeId=await f.challenge('9000000001','recycler');assert.equal((await f.call('/auth/verify',{method:'POST',input:{challengeId,code:'123456'}})).status,409);
+  assert.equal((await f.env.DB.prepare('SELECT count(*) AS n FROM sessions').first()).n,1);
   assert.equal((await f.env.DB.prepare('SELECT count(*) AS n FROM organizations').first()).n,0);
   assert.equal((await f.call('/auth/challenges',{method:'POST',input:{mobile:'9000000003',role:'ops'}})).status,400);
 });

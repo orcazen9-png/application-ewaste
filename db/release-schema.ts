@@ -1,6 +1,6 @@
 import {sql} from 'drizzle-orm';
 import {sqliteTable,text,integer,primaryKey,index,check} from 'drizzle-orm/sqlite-core';
-import {facilities} from './account-schema';
+import {facilities,users} from './account-schema';
 
 // Time-limited sandbox permission; never changes statutory verification status.
 export const demoFacilityAccess=sqliteTable('demo_facility_access',{
@@ -21,3 +21,8 @@ export const privateObjects=sqliteTable('private_objects',{
 export const privateChunks=sqliteTable('private_chunks',{
   key:text('key').notNull().references(()=>privateObjects.key),part:integer('part').notNull(),data:text('data').notNull()
 },t=>[primaryKey({columns:[t.key,t.part]})]);
+
+export const authCredentials=sqliteTable('auth_credentials',{
+  userId:text('user_id').primaryKey().notNull().references(()=>users.id),
+  username:text('username').notNull().unique(),passwordHash:text('password_hash').notNull(),createdAt:text('created_at').notNull()
+});

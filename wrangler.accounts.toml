@@ -10,6 +10,7 @@ command = "npm run build"
 [vars]
 ACCOUNTS_ENABLED = "true"
 INVITATIONS_ENABLED = "true"
+PASSWORD_AUTH_ENABLED = "true"
 OPS_ENABLED = "true"
 ACCOUNT_STORAGE = "d1"
 SPACE_CREATION = "disabled"

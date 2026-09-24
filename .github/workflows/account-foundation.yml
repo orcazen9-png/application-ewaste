@@ -60,7 +60,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           script: |
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest --no-daemon
             timeout 20s adb pull /sdcard/account-draft.png native-android/native-account-draft.png
             timeout 20s adb pull /sdcard/market-order.png native-android/native-market-order.png
             timeout 20s adb pull /sdcard/logistics.png native-android/native-logistics.png
@@ -68,6 +68,11 @@ jobs:
             timeout 20s adb pull /sdcard/ui-photos.png native-android/ui-photos.png
             timeout 20s adb pull /sdcard/ui-details.png native-android/ui-details.png
             timeout 20s adb pull /sdcard/ui-earnings.png native-android/ui-earnings.png
+            timeout 20s adb pull /sdcard/ui-welcome.png native-android/ui-welcome.png
+            timeout 20s adb pull /sdcard/ui-roles.png native-android/ui-roles.png
+            timeout 20s adb pull /sdcard/ui-signup.png native-android/ui-signup.png
+            timeout 20s adb pull /sdcard/ui-login.png native-android/ui-login.png
+            timeout 20s adb pull /sdcard/ui-recycler-home.png native-android/ui-recycler-home.png
             adb shell wm size 1080x1920
             adb shell wm density 480
             adb shell settings put system font_scale 1.3

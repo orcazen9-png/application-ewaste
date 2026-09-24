@@ -30,12 +30,13 @@ public class AccountActivity extends AppCompatActivity {
     SessionVault vault;
     MarketplaceScreens market;
     AccountDesign ui;
+    AccountEntry entry;
     LotEditor lotEditor;
     int editStep=0;
     int itemIndex=0;
     JSONObject session,draft;
     LinearLayout root,page;
-    String screen="home",challengeId="",phone="",selectedRole="collector",selectedLanguage="en";
+    String screen="home",challengeId="",phone="",selectedRole="",selectedLanguage="en";
     String cameraId="",cameraAccount="",cameraDraft="";
     long resendAt=0;
     boolean working=false;
@@ -49,23 +50,25 @@ public class AccountActivity extends AppCompatActivity {
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
 
     @Override public void onCreate(Bundle saved){
-        super.onCreate(saved);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);ui=new AccountDesign(this);lotEditor=new LotEditor(this);market=new MarketplaceScreens(this);
+        super.onCreate(saved);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);ui=new AccountDesign(this);entry=new AccountEntry(this);lotEditor=new LotEditor(this);market=new MarketplaceScreens(this);
         try {
             try{session=vault.read();}catch(Exception unreadableSession){vault.clear();session=null;}
             if(session!=null&&Instant.parse(session.getString("expiresAt")).isBefore(Instant.now())){vault.clear();session=null;}
+            if(session!=null)selectedLanguage=session.getJSONObject("user").optString("language","en");
             if(saved!=null){
+                entry.entered=saved.getBoolean("entered",false);entry.step=saved.getString("entryStep","welcome");entry.mode=saved.getString("entryMode","login");entry.restore(saved);
                 screen=saved.getString("screen","home");challengeId=saved.getString("challenge","");phone=saved.getString("phone","");
-                selectedRole=saved.getString("role","collector");selectedLanguage=saved.getString("language","en");resendAt=saved.getLong("resendAt",0);
+                selectedRole=saved.getString("role","");selectedLanguage=saved.getString("language","en");resendAt=saved.getLong("resendAt",0);
                 cameraId=saved.getString("cameraId","");cameraAccount=saved.getString("cameraAccount","");cameraDraft=saved.getString("cameraDraft","");
                 String draftId=saved.getString("draftId","");if(session!=null&&!draftId.isEmpty())draft=store.draft(account(),draftId);
                 editStep=saved.getInt("editStep",0);itemIndex=saved.getInt("itemIndex",0);if(session!=null&&screen.equals("market"))market.restore();
             }
             getOnBackPressedDispatcher().addCallback(this,new OnBackPressedCallback(true){@Override public void handleOnBackPressed(){goBack();}});
-            drainRevocations();render();if(session!=null){NotificationJob.schedule(this);if(getIntent().getBooleanExtra("openInbox",false))market.load("inbox","/notifications");else refresh();}
+            drainRevocations();render();if(session!=null&&entry.entered){NotificationJob.schedule(this);if(getIntent().getBooleanExtra("openInbox",false))market.load("inbox","/notifications");else refresh();}
         }catch(Exception error){showError(error);}
     }
     @Override protected void onSaveInstanceState(Bundle out){
-        super.onSaveInstanceState(out);out.putString("screen",screen);out.putString("challenge",challengeId);out.putString("phone",phone);
+        super.onSaveInstanceState(out);out.putBoolean("entered",entry.entered);out.putString("entryStep",entry.step);out.putString("entryMode",entry.mode);entry.save(out);out.putString("screen",screen);out.putString("challenge",challengeId);out.putString("phone",phone);
         out.putString("role",selectedRole);out.putString("language",selectedLanguage);out.putLong("resendAt",resendAt);
         out.putString("cameraId",cameraId);out.putString("cameraAccount",cameraAccount);out.putString("cameraDraft",cameraDraft);
         if(draft!=null)out.putString("draftId",draft.optString("id"));
@@ -74,13 +77,13 @@ public class AccountActivity extends AppCompatActivity {
     @Override protected void onDestroy(){tasks.submit(()->store.close());tasks.shutdown();super.onDestroy();}
     String account(){return session==null?"":session.optJSONObject("user").optString("id");}
     String token(){return session==null?"":session.optString("token");}
-    String language(){return session==null?selectedLanguage:session.optJSONObject("user").optString("language","en");}
+    String language(){return session==null||entry.visible()?selectedLanguage:session.optJSONObject("user").optString("language","en");}
     String t(String source){return Translations.text(this,language(),source);}
     String f(String pattern,Object... values){return String.format(java.util.Locale.forLanguageTag(language()+"-IN"),t(pattern),values);}
     String localDate(String value){return Translations.date(language(),value);}
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     LinearLayout column(){LinearLayout value=new LinearLayout(this);value.setOrientation(LinearLayout.VERTICAL);return value;}
-    void goBack(){if(session!=null&&screen.equals("edit")&&editStep>0){editStep--;render();}else if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}
+    void goBack(){if(entry.visible()){entry.back();return;}if(session!=null&&screen.equals("edit")&&editStep>0){editStep--;render();}else if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}
     void label(String value,int size){TextView text=ui.text(value,size,size<16?AccountDesign.MUTED:AccountDesign.INK,size>=18);text.setPadding(0,dp(size>=20?8:6),0,dp(10));page.addView(text);}
     void button(String title,String tag,Runnable run){boolean primary=tag.matches("account-redeem|account-verify|account-send-code|account-save-profile|finance-submit-invoice|finance-confirm-.*|finance-approve-.*|market-accept|market-submit|market-retry|.*save.*");ui.action(page,title,tag,run,primary?1:0);}
     EditText field(String title,String value,String tag,int type,int limit,Consumer<String> changed){
@@ -110,19 +113,20 @@ public class AccountActivity extends AppCompatActivity {
         ui.topBar();if(working){ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);progress.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(AccountDesign.GREEN));progress.setContentDescription(t("Connecting…"));root.addView(progress,new LinearLayout.LayoutParams(-1,dp(3)));}
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));page=column();page.setPadding(dp(20),dp(20),dp(20),dp(24));scroll.addView(page);
         try {
-            if(session==null){signIn();return;}
+            if(entry.visible()){entry.render();return;}
             if(screen.equals("edit")&&draft!=null)editor();else if(screen.equals("lots"))ui.lots(true);else if(screen.equals("profile"))profile();else if(screen.equals("market"))market.render();else home();
         }catch(Exception error){label(t("Your saved drafts are kept. ")+message(error),15);}
-        if(session!=null&&!screen.equals("edit"))ui.navigation();
+        if(!entry.visible()&&!screen.equals("edit"))ui.navigation();
     }
     void signIn(){
-        if(BuildConfig.INVITATION_SIGN_IN){
+        ui.heading(t(entry.mode.equals("signup")?"Sign up":"Log in")+" · "+entry.roleName(),t("Use the account for your selected role."));
+        if(entry.step.equals("invitation")){
             choices(t("Preferred language"),new String[]{"English","हिन्दी","मराठी"},Arrays.asList("en","hi","mr").indexOf(selectedLanguage),position->{String next=new String[]{"en","hi","mr"}[position];if(!selectedLanguage.equals(next)){selectedLanguage=next;render();}});
             label(t("Sign in with your invitation"),21);
             label(t("Use the personal invitation supplied by Freedom Value. Your account role is already assigned."),16);
             EditText invite=field(t("Invitation code"),"","account-invitation",InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD,68,null);invite.setSaveEnabled(false);
             button(t("Sign in"),"account-redeem",()->{try{
-                JSONObject input=new JSONObject().put("code",invite.getText().toString().trim()).put("language",selectedLanguage);
+                JSONObject input=new JSONObject().put("code",invite.getText().toString().trim()).put("expectedRole",selectedRole).put("language",selectedLanguage);
                 task(()->api.request("POST","/auth/invitation","",input),result->{try{applySession(result);refresh();}catch(Exception e){showError(e);}});
             }catch(Exception e){showError(e);}});
             label(t("Invitations work once. If you sign out or change phones, request a new invitation. Mobile number verification is not enabled in this demo."),14);return;
@@ -153,7 +157,10 @@ public class AccountActivity extends AppCompatActivity {
     }
     void applySession(JSONObject value)throws Exception {
         AccountStore.validId(value.getJSONObject("user").getString("id"));
-        vault.save(value);session=value;challengeId="";draft=null;screen="home";epoch++;NotificationJob.schedule(this);render();
+        if(!selectedRole.isEmpty()&&!selectedRole.equals(value.getJSONObject("user").getString("role")))throw new IOException(t("This account uses a different role. Choose the matching role to continue."));
+        String previousToken=token();
+        vault.save(value);session=value;entry.entered=true;challengeId="";draft=null;screen="home";epoch++;NotificationJob.schedule(this);render();
+        if(!previousToken.isEmpty()&&!previousToken.equals(token())){try{vault.queueRevocation(previousToken);drainRevocations();}catch(Exception ignored){/* The previous session expires on the server; the new session is already saved. */}}
     }
     void home()throws Exception {ui.home();}
     void createDraft(){try{
@@ -201,7 +208,8 @@ public class AccountActivity extends AppCompatActivity {
         },savedId->{try{if(savedId.startsWith("evidence:")){market.show("evidence",store.cached(accountId,savedId));}else{draft=store.draft(accountId,savedId);screen="edit";render();}}catch(Exception e){showError(e);}});
     }
     void profile()throws Exception {
-        JSONObject user=session.getJSONObject("user");ui.heading(t("Profile"),t(user.optString("role").equals("collector")?"Collector workspace":"Recycler workspace"));
+        JSONObject user=session.getJSONObject("user");ui.heading(t("Profile"),t(user.optString("role").equals("collector")?"Aggregator workspace":"Recycler workspace"));
+        if(user.optString("username").isEmpty())button(t("Set up username and password"),"account-login-details",entry::attach);else ui.note(page,t("Username")+": "+user.optString("username"));
         EditText name=field(t("Name"),user.optString("displayName"),"account-profile-name",InputType.TYPE_CLASS_TEXT,100,null);
         EditText area=field(t("Area"),user.optString("locality"),"account-profile-area",InputType.TYPE_CLASS_TEXT,120,null);
         final String[] language={user.optString("language","en")};
@@ -210,7 +218,7 @@ public class AccountActivity extends AppCompatActivity {
             try {JSONObject input=new JSONObject().put("displayName",name.getText().toString()).put("locality",area.getText().toString()).put("language",language[0]).put("expectedVersion",user.getInt("version"));String auth=token();
                 task(()->api.request("PUT","/me",auth,input),result->{try{session.put("user",result.getJSONObject("user"));vault.save(session);screen="home";render();}catch(Exception e){showError(e);}});
             }catch(Exception e){showError(e);}
-        });ui.section(t("Notifications"));button(t("Enable phone notifications"),"account-notifications-enable",()->{if(android.os.Build.VERSION.SDK_INT>=33)notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);else NotificationJob.schedule(this);});ui.space(page,20);button(t("Sign out"),"account-logout",()->new AlertDialog.Builder(this).setTitle(t("Sign out?")).setMessage(t("You will need a new invitation to sign in again. Your saved records will stay on this phone.")).setPositiveButton(t("Sign out"),(d,w)->logout()).setNegativeButton(t("Back"),null).show());
+        });ui.section(t("Notifications"));button(t("Enable phone notifications"),"account-notifications-enable",()->{if(android.os.Build.VERSION.SDK_INT>=33)notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS);else NotificationJob.schedule(this);});ui.space(page,20);button(t("Switch account"),"account-switch",entry::open);button(t("Sign out"),"account-logout",()->new AlertDialog.Builder(this).setTitle(t("Sign out?")).setMessage(t(user.optString("username").isEmpty()?"You will need a new invitation to sign in again. Your saved records will stay on this phone.":"Sign in again with your username and password. Your saved records will stay on this phone.")).setPositiveButton(t("Sign out"),(d,w)->logout()).setNegativeButton(t("Back"),null).show());
     }
     void refresh(){
         String owner=account(),auth=token();boolean collector=session.optJSONObject("user").optString("role").equals("collector");
@@ -236,7 +244,7 @@ public class AccountActivity extends AppCompatActivity {
         });
     }
     void logout(){
-        try{vault.queueRevocation(token());vault.clear();NotificationJob.cancel(this);session=null;draft=null;screen="home";epoch++;render();drainRevocations();}catch(Exception e){showError(e);}
+        try{vault.queueRevocation(token());vault.clear();NotificationJob.cancel(this);session=null;draft=null;screen="home";entry.entered=false;entry.step="welcome";selectedRole="";epoch++;render();drainRevocations();}catch(Exception e){showError(e);}
     }
     void drainRevocations(){
         tasks.submit(()->{try{JSONArray tokens=vault.pendingRevocations();for(int i=0;i<tokens.length();i++){
@@ -249,7 +257,7 @@ public class AccountActivity extends AppCompatActivity {
         if(working)return;working=true;final int started=epoch;render();
         tasks.submit(()->{try{T value=operation.call();runOnUiThread(()->{if(isDestroyed()||isFinishing()||started!=epoch)return;working=false;done.accept(value);});}
             catch(Exception error){runOnUiThread(()->{if(isDestroyed()||isFinishing()||started!=epoch)return;working=false;
-                if(error instanceof AccountApi.Failure&&((AccountApi.Failure)error).status==401&&session!=null){try{vault.clear();}catch(Exception ignored){}session=null;draft=null;epoch++;}
+                if(error instanceof AccountApi.Failure&&((AccountApi.Failure)error).status==401&&session!=null&&!entry.visible()){try{vault.clear();}catch(Exception ignored){}session=null;draft=null;epoch++;}
                 render();showError(error);});}});
     }
     String message(Throwable error){return error.getMessage()==null?t("Please try again."):Translations.error(this,language(),error.getMessage());}

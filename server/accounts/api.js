@@ -9,14 +9,16 @@ import {fail, json} from './common.js';
 import {invitationRoute} from './invitations.js';
 import {financeRoute} from './finance.js';
 import {personalInsights} from './finance-read.js';
+import {passwordRoute} from './password-auth.js';
 
 export async function accountApi(request, env) {
   const path = new URL(request.url).pathname;
   if (path === '/api/v1/capabilities' && request.method === 'GET') {
-    return json({accountsEnabled: env.ACCOUNTS_ENABLED === 'true', invitationsEnabled:env.INVITATIONS_ENABLED==='true', schemaVersion: 2});
+    return json({accountsEnabled: env.ACCOUNTS_ENABLED === 'true', invitationsEnabled:env.INVITATIONS_ENABLED==='true', passwordAuthEnabled:env.PASSWORD_AUTH_ENABLED==='true', schemaVersion: 3});
   }
   // A new build cannot accidentally enable public account creation on the legacy live workspace.
   if (env.ACCOUNTS_ENABLED !== 'true') fail('Personal accounts are not available on this server yet.',503);
+  const password=await passwordRoute(request,env,path);if(password)return password;
   const invitation=await invitationRoute(request,env,path);if(invitation)return invitation;
   const auth = await authRoute(request, env, path); if (auth) return auth;
   const user = await authenticate(request, env);

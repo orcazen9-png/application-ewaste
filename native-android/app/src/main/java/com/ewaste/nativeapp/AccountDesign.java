@@ -43,10 +43,10 @@ final class AccountDesign {
     }
     void topBar(){
         LinearLayout bar=row();bar.setPadding(dp(16),dp(8),dp(12),dp(8));bar.setBackgroundColor(BG);a.root.addView(bar,new LinearLayout.LayoutParams(-1,-2));
-        boolean back=a.session!=null&&!a.screen.equals("home");
+        boolean back=a.entry.visible()?!a.entry.step.equals("welcome"):!a.screen.equals("home");
         if(back)iconButton(bar,"back",a.t("Back"),"app-back",a::goBack);else{ImageView mark=iconView("leaf",GREEN,25);mark.setBackground(shape(LIME,13,0));mark.setPadding(dp(10),dp(10),dp(10),dp(10));bar.addView(mark,new LinearLayout.LayoutParams(dp(44),dp(44)));}
-        LinearLayout words=a.column();LinearLayout.LayoutParams wp=new LinearLayout.LayoutParams(0,-2,1);wp.leftMargin=dp(12);bar.addView(words,wp);words.addView(text("E-Waste Marketplace",16,INK,true));space(words,3);words.addView(text(a.t(a.session==null?"By Freedom Value":a.session.optJSONObject("user").optString("role").equals("collector")?"Collector workspace":"Recycler workspace"),11,MUTED,false));
-        if(a.session!=null)iconButton(bar,"bell",a.t("Notifications"),"account-inbox",()->a.market.load("inbox","/notifications"));
+        LinearLayout words=a.column();LinearLayout.LayoutParams wp=new LinearLayout.LayoutParams(0,-2,1);wp.leftMargin=dp(12);bar.addView(words,wp);words.addView(text("E-Waste Marketplace",16,INK,true));space(words,3);words.addView(text(a.t(a.entry.visible()?"By Freedom Value":a.session.optJSONObject("user").optString("role").equals("collector")?"Aggregator workspace":"Recycler workspace"),11,MUTED,false));
+        if(!a.entry.visible())iconButton(bar,"bell",a.t("Notifications"),"account-inbox",()->a.market.load("inbox","/notifications"));
     }
     void iconButton(LinearLayout parent,String icon,String description,String tag,Runnable run){ImageButton b=new ImageButton(a);b.setImageDrawable(new Symbol(icon,GREEN,dp(23)));b.setBackground(new RippleDrawable(ColorStateList.valueOf(LINE),shape(BG,24,0),null));b.setContentDescription(description);b.setTag(tag);b.setPadding(dp(12),dp(12),dp(12),dp(12));b.setOnClickListener(v->{if(!a.working)run.run();});parent.addView(b,new LinearLayout.LayoutParams(dp(48),dp(48)));}
     void navigation(){

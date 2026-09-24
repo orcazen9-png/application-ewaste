@@ -64,6 +64,13 @@
       "when": 1790208000006,
       "tag": "0008_demo_facility_access",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790208000007,
+      "tag": "0009_password_accounts",
+      "breakpoints": true
     }
   ]
 }

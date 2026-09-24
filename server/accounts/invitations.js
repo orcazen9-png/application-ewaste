@@ -18,6 +18,11 @@ export async function invitationRoute(request,env,path){
   const uid=invite.actor.slice(invite.actor.indexOf(':')+1),table=staff?'operations_staff':'users';
   const user=await env.DB.prepare(`SELECT * FROM ${table} WHERE id=? AND status='active'`).bind(uid).first();
   if(!user)fail('This invitation is unavailable, expired or already used.',401);
+  // New apps choose the workspace first. A mismatch must not consume the one-use code.
+  if(!staff&&input.expectedRole!==undefined){
+    if(!['collector','recycler'].includes(input.expectedRole))fail('Choose Aggregator or Recycler.');
+    if(input.expectedRole!==user.role)fail('This invitation belongs to a different role. Go back and choose '+(user.role==='collector'?'Aggregator':'Recycler')+'.',409);
+  }
   const language=input.language||user.language||'en';if(!['en','hi','mr'].includes(language))fail('Choose a supported language.');
   const token=(staff?'ewo_':'ews_')+hex(crypto.getRandomValues(new Uint8Array(32))),tokenHash=await hash(token);
   const expires=new Date(Date.now()+(staff?8*3600000:30*86400000)).toISOString();

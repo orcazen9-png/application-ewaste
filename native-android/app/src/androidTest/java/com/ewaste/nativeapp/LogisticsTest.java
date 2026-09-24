@@ -30,6 +30,7 @@ public class LogisticsTest {
     @Test public void collectorEvidenceSurvivesRestartUploadsOnceAndRetriesLostHandoverResponse()throws Exception{
         SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();LogApi api=new LogApi(true);signIn(api);
         try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
             idle(s);enter(s,api);s.onActivity(a->a.root.findViewWithTag("logistics-pickup").performClick());
             s.onActivity(a->{((EditText)a.root.findViewWithTag("evidence-quantity")).setText("200");((EditText)a.root.findViewWithTag("evidence-condition")).setText("Sorted computers");((EditText)a.root.findViewWithTag("evidence-location")).setText("Mumbai gate 2");((EditText)a.root.findViewWithTag("evidence-message")).setText("Weight checked together");});
             File image=File.createTempFile("handover",".jpg",context.getCacheDir());try(FileOutputStream out=new FileOutputStream(image)){Bitmap bitmap=Bitmap.createBitmap(20,20,Bitmap.Config.ARGB_8888);bitmap.compress(Bitmap.CompressFormat.JPEG,85,out);bitmap.recycle();}
@@ -45,6 +46,7 @@ public class LogisticsTest {
     @Test public void recyclerAcknowledgesSeparateLogisticsChargeAndRecordsReceiptWithoutMarkingPaid()throws Exception{
         SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();LogApi api=new LogApi(false);api.j.put("costAcknowledged",false).put("state","picked_up").put("pickup",new JSONObject().put("quantity","200"));signIn(api);
         try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
             idle(s);enter(s,api);s.onActivity(a->a.root.findViewWithTag("logistics-ack-cost").performClick());onView(withText("Acknowledge")).inRoot(isDialog()).perform(click());idle(s);
             s.onActivity(a->a.root.findViewWithTag("logistics-receipt").performClick());
             s.onActivity(a->{((EditText)a.root.findViewWithTag("evidence-quantity")).setText("180");((EditText)a.root.findViewWithTag("evidence-condition")).setText("Sorted");((EditText)a.root.findViewWithTag("evidence-location")).setText("Mumbai receiving bay");((EditText)a.root.findViewWithTag("evidence-message")).setText("20 kg missing");((EditText)a.root.findViewWithTag("evidence-noPhotoReason")).setText("Camera unavailable; weight slip reference 12");a.root.findViewWithTag("evidence-submit").performClick();});onView(withText("Submit")).inRoot(isDialog()).perform(click());idle(s);

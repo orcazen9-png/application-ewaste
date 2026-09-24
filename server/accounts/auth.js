@@ -4,7 +4,7 @@ import {otpProvider} from './otp-provider.js';
 const languages = new Set(['en', 'hi', 'mr']);
 const roles = new Set(['collector', 'recycler']);
 const SESSION_MS = 24 * 60 * 60 * 1000;
-export const publicUser = user => ({id: user.id, role: user.role, mobile: user.mobile.startsWith('invited:')?'':user.mobile, identityMethod:user.mobile.startsWith('invited:')?'invitation':'sms', displayName: user.display_name,
+export const publicUser = user => ({id: user.id, role: user.role, mobile: /^(invited|password):/.test(user.mobile)?'':user.mobile, username:user.username||'', identityMethod:user.username||user.mobile.startsWith('password:')?'password':user.mobile.startsWith('invited:')?'invitation':'sms', displayName: user.display_name,
   language: user.language, locality: user.locality, version: user.version});
 
 export async function rate(env, subject, windowSeconds, limit) {
@@ -57,6 +57,8 @@ export async function authRoute(request, env, path) {
       WHERE id=? AND status='pending' AND expires_at>? AND attempts<5 RETURNING *`).bind(challengeId, now()).first();
     if (!challenge) fail('This code expired or reached its attempt limit. Request a new code.', 401);
     if (!await provider.verify(challenge.provider_reference, input.code)) fail('The verification code is incorrect or expired.', 401);
+    const existing = await env.DB.prepare('SELECT role FROM users WHERE mobile=?').bind(challenge.mobile).first();
+    if (existing && existing.role !== challenge.requested_role) fail('This account uses a different role. Go back and choose '+(existing.role==='collector'?'Aggregator':'Recycler')+'.',409);
     const time = now(), userId = id(), organizationId = id(), sessionToken = 'ews_' + hex(crypto.getRandomValues(new Uint8Array(32)));
     const tokenHash = await hash(sessionToken), expires = new Date(Date.now() + SESSION_MS).toISOString();
     // Guard every side effect with the challenge's unique consumed_by value. Concurrent
@@ -93,7 +95,7 @@ export async function authenticate(request, env) {
   const token = request.headers.get('Authorization')?.match(/^Bearer (ews_[a-f0-9]{64})$/)?.[1];
   if (!token) fail('Sign in to continue.', 401);
   const tokenHash = await hash(token);
-  const user = await env.DB.prepare(`SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id
+  const user = await env.DB.prepare(`SELECT u.*,c.username FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN auth_credentials c ON c.user_id=u.id
     WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND u.status='active'`).bind(tokenHash, now()).first();
   if (!user) fail('Your session has ended. Sign in again; saved drafts are kept.', 401);
   return {...user, tokenHash};
@@ -126,7 +128,7 @@ export async function profileRoute(request, env, user, path) {
         SELECT ?,?,'profile.updated',?,?,? WHERE changes()=1`).bind(id(),user.id,user.id,input.expectedVersion+1,time),
     ]);
     if (writes[0].meta.changes !== 1) fail('Your profile changed on another device. Refresh before saving.', 409);
-    const updated = await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(user.id).first();
+    const updated = await env.DB.prepare('SELECT u.*,c.username FROM users u LEFT JOIN auth_credentials c ON c.user_id=u.id WHERE u.id=?').bind(user.id).first();
     return json({user: publicUser(updated)});
   }
   fail('Method not supported.', 405);

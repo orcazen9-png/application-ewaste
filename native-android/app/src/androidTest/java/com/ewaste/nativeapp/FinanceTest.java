@@ -25,6 +25,7 @@ public class FinanceTest {
  @Test public void invoiceDraftSurvivesRestartAndLostReplyUsesSameCommand()throws Exception{
   SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();FinApi api=new FinApi();signIn(api);
   try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
    idle(s);s.onActivity(a->a.market.finance.open(api.order.optString("id")));idle(s);s.onActivity(a->a.root.findViewWithTag("finance-upload").performClick());
    s.onActivity(a->{for(String[] f:new String[][]{{"issuer","Test collector"},{"number","INV-1"},{"amount","10000"},{"reason","Issued invoice"}})((EditText)a.root.findViewWithTag("finance-"+f[0])).setText(f[1]);try{String doc=UUID.randomUUID().toString();try(FileOutputStream out=new FileOutputStream(a.market.finance.documentFile(a.account(),doc))){out.write("%PDF-1.7\nTest\n%%EOF".getBytes());}JSONObject d=a.market.data();d.put("documentId",doc).put("documentMime","application/pdf").put("documentName","Invoice.pdf");a.market.persist();}catch(Exception e){throw new AssertionError(e);}});
    s.recreate();idle(s);s.onActivity(a->{assertEquals("INV-1",a.market.data().optString("number"));a.root.findViewWithTag("finance-submit-invoice").performClick();});idle(s);onView(withText("OK")).inRoot(isDialog()).perform(click());s.recreate();idle(s);s.onActivity(a->a.root.findViewWithTag("market-retry").performClick());idle(s);
@@ -34,12 +35,14 @@ public class FinanceTest {
  @Test public void hindiAndMarathiKeepRoleBoundConfirmationAndTranslateNavigation()throws Exception{
   SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();
   try{for(String lang:new String[]{"hi","mr"}){FinApi api=new FinApi();api.user.put("language",lang);signIn(api);try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
    idle(s);s.onActivity(a->{assertEquals(lang.equals("hi")?"प्रोफ़ाइल":"प्रोफाइल",((Button)a.root.findViewWithTag("account-profile")).getText().toString());a.market.finance.open(api.order.optString("id"));});idle(s);s.onActivity(a->{assertNotNull(a.root.findViewWithTag("finance-confirm-0"));assertEquals(lang.equals("hi")?"पैसे मिलने की पुष्टि करें":"पैसे मिळाल्याची पुष्टी करा",((Button)a.root.findViewWithTag("finance-confirm-0")).getText().toString());});
   }}}finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
  }
  @Test public void translatedCategorySelectionStoresCanonicalCodeAndLeavesEnteredTextUntouched()throws Exception{
   SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();
   try{for(String lang:new String[]{"hi","mr"}){FinApi api=new FinApi();api.user.put("language",lang);signIn(api);try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
    idle(s);s.onActivity(a->{a.createDraft();a.root.findViewWithTag("lot-next").performClick();{Spinner categories=(Spinner)a.root.findViewWithTag("account-category");assertEquals(lang.equals("hi")?"कंप्यूटर और लैपटॉप":"संगणक आणि लॅपटॉप",categories.getAdapter().getItem(1));categories.setSelection(1);}});idle(s);
    s.onActivity(a->{assertEquals("B01",a.draft.optJSONArray("items").optJSONObject(0).optString("broadCode"));a.label("pending",15);assertEquals("pending",((TextView)a.page.getChildAt(a.page.getChildCount()-1)).getText().toString());assertFalse(a.t("Notebook Computers").equals("Notebook Computers"));});
   }}}finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
@@ -47,6 +50,7 @@ public class FinanceTest {
  @Test public void olderInboxUsesEncodedCursorAndCanReturnToNewest()throws Exception{
   SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();FinApi api=new FinApi();signIn(api);
   try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
+            s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
    idle(s);s.onActivity(a->a.market.load("inbox","/notifications"));idle(s);s.onActivity(a->{assertNotNull(a.root.findViewWithTag("inbox-older"));a.root.findViewWithTag("inbox-older").performClick();});idle(s);
    assertTrue(api.notificationPath.contains("%7C"));s.onActivity(a->{assertNull(a.root.findViewWithTag("inbox-older"));assertEquals("older",a.market.data().optJSONArray("notifications").optJSONObject(0).optString("id"));a.root.findViewWithTag("inbox-latest").performClick();});idle(s);assertEquals("/notifications",api.notificationPath);
   }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
