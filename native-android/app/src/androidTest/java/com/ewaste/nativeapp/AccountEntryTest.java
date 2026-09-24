@@ -22,11 +22,11 @@ public class AccountEntryTest {
  final NativeDesignTest design=new NativeDesignTest();
  void set(AccountActivity a,String tag,String value){((EditText)a.root.findViewWithTag(tag)).setText(value);}
  static class Api extends AccountApi {
-  JSONObject user;String role="collector";int signups=0;boolean reject=false;
+  JSONObject user;String role="collector";int signups=0;boolean reject=false,expired=false;
   JSONObject session(String role)throws Exception{this.role=role;user=new JSONObject().put("id",UUID.randomUUID().toString()).put("role",role).put("username",role+".demo").put("identityMethod","password").put("displayName",role.equals("recycler")?"Mumbai Recycling":"Mumbai Collection").put("language","en").put("locality","Mumbai").put("version",1);return new JSONObject().put("user",user).put("token","ews_"+(role.equals("recycler")?"b":"a").repeat(64)).put("expiresAt",Instant.now().plusSeconds(3600).toString());}
   @Override public JSONObject request(String method,String path,String token,JSONObject body)throws Exception{
    if(path.equals("/auth/register")||path.equals("/auth/login")){assertTrue(token.isEmpty());assertEquals(role,body.getString("role"));if(reject)throw new Failure(401,"Username or password is incorrect.");if(path.endsWith("register")){signups++;assertEquals("Mumbai",body.getString("locality"));}return session(role);}
-   if(path.equals("/me"))return new JSONObject().put("user",user).put("facilities",new JSONArray());
+   if(path.equals("/me")){if(expired)throw new Failure(401,"Your session has ended.");return new JSONObject().put("user",user).put("facilities",new JSONArray());}
    if(path.equals("/lots"))return new JSONObject().put("lots",new JSONArray()).put("nextCursor",JSONObject.NULL);
    if(path.equals("/auth/logout"))return new JSONObject();throw new java.io.IOException("Unexpected request "+path);
   }
@@ -52,6 +52,8 @@ public class AccountEntryTest {
    api.role="recycler";api.reject=true;s.onActivity(a->{set(a,"entry-username","recycler.demo");set(a,"entry-password","a wrong testing password");a.root.findViewWithTag("entry-submit").performClick();});design.idle(s);onView(withText("OK")).inRoot(isDialog()).perform(click());
    assertEquals(existing.optString("token"),vault.read().optString("token"));
    s.onActivity(a->{a.goBack();a.goBack();a.root.findViewWithTag("entry-continue").performClick();});design.idle(s);s.onActivity(a->{assertNotNull(a.root.findViewWithTag("account-create"));assertEquals(existing.optJSONObject("user").optString("id"),a.account());});
+   api.expired=true;s.onActivity(AccountActivity::refresh);design.idle(s);onView(withText("OK")).inRoot(isDialog()).perform(click());
+   s.onActivity(a->{assertNull(a.session);assertEquals("",a.selectedRole);assertNotNull(a.root.findViewWithTag("entry-login"));assertNotNull(a.root.findViewWithTag("entry-signup"));});assertNull(vault.read());
   }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
  }
 }

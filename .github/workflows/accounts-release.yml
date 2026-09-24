@@ -29,32 +29,32 @@ jobs:
         env:
           ANDROID_SIGNING_JSON: ${{ secrets.ANDROID_SIGNING_JSON }}
         run: python3 scripts/prepare-android-signing.py
-      - name: Download the actual previously distributed v5 APK
+      - name: Download the actual previously distributed v6 APK
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
           repository: orcazen9-png/application-ewaste
-          run-id: 35939722564
-          name: E-Waste-Marketplace-native-v5
+          run-id: 35948754613
+          name: E-Waste-Marketplace-native-v6
           path: previous-release
       - name: Build the signed native release and test APK
         working-directory: native-android
         run: |
           set -euo pipefail
-          bash ./gradlew assembleRelease -PaccountFoundation=true -PinvitationSignIn=true -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=6 -PappVersionName=3.2-native-ui --no-daemon
-          bash ./gradlew assembleDebug assembleDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=6 --no-daemon
+          bash ./gradlew assembleRelease -PaccountFoundation=true -PinvitationSignIn=true -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=7 -PappVersionName=3.3-native-accounts --no-daemon
+          bash ./gradlew assembleDebug assembleDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=7 --no-daemon
       - name: Verify release certificate, package and native implementation
         run: |
           set -euo pipefail
           sdktools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           mkdir -p apk-download upgrade-baseline
           apk=native-android/app/build/outputs/apk/release/app-release.apk
-          cp previous-release/E-Waste-Marketplace-native-v5.apk upgrade-baseline/app.apk
+          cp previous-release/E-Waste-Marketplace-native-v6.apk upgrade-baseline/app.apk
           cp native-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk upgrade-baseline/tests.apk
           "$sdktools/apksigner" verify --verbose --print-certs "$apk" > apk-download/verification.txt
           "$sdktools/aapt" dump badging "$apk" >> apk-download/verification.txt
           "$sdktools/apksigner" verify --print-certs upgrade-baseline/app.apk > upgrade-baseline/certificate.txt
-          grep "package: name='com.ewaste.marketplace.collector' versionCode='6' versionName='3.2-native-ui'" apk-download/verification.txt
+          grep "package: name='com.ewaste.marketplace.collector' versionCode='7' versionName='3.3-native-accounts'" apk-download/verification.txt
           python3 - <<'PY'
           import pathlib,re
           expected=pathlib.Path('native-android/signing-certificate.sha256').read_text().strip().lower()
@@ -64,14 +64,14 @@ jobs:
           PY
           if grep -E 'application-testOnly|application-debuggable' apk-download/verification.txt; then exit 1; fi
           if grep -R -E 'import android.webkit|com.getcapacitor' native-android/app/src/main; then exit 1; fi
-          cp "$apk" apk-download/E-Waste-Marketplace-native-v6.apk
+          cp "$apk" apk-download/E-Waste-Marketplace-native-v7.apk
           sha256sum apk-download/*.apk >> apk-download/verification.txt
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Actual v5 to v6 installation, data preservation and native role tests
+      - name: Actual v6 to v7 installation, data preservation and native role tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -84,13 +84,18 @@ jobs:
             adb shell am start -W -n com.ewaste.marketplace.collector/com.ewaste.nativeapp.MainActivity
             adb shell uiautomator dump /sdcard/release-signin.xml
             adb pull /sdcard/release-signin.xml apk-download/release-signin.xml
-            grep -q 'Invitation code' apk-download/release-signin.xml
+            grep -q 'Sign up' apk-download/release-signin.xml
             adb exec-out screencap -p > apk-download/native-signin.png
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=6 -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=7 -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest --no-daemon
             adb pull /sdcard/ui-home.png apk-download/ui-home.png
             adb pull /sdcard/ui-photos.png apk-download/ui-photos.png
             adb pull /sdcard/ui-details.png apk-download/ui-details.png
             adb pull /sdcard/ui-earnings.png apk-download/ui-earnings.png
+            adb pull /sdcard/ui-welcome.png apk-download/ui-welcome.png
+            adb pull /sdcard/ui-roles.png apk-download/ui-roles.png
+            adb pull /sdcard/ui-signup.png apk-download/ui-signup.png
+            adb pull /sdcard/ui-login.png apk-download/ui-login.png
+            adb pull /sdcard/ui-recycler-home.png apk-download/ui-recycler-home.png
             adb shell wm size 1080x1920
             adb shell wm density 480
             adb shell settings put system font_scale 1.3
@@ -105,18 +110,18 @@ jobs:
             adb shell settings put system font_scale 1.0
       - uses: actions/upload-artifact@v4
         with:
-          name: E-Waste-Marketplace-native-v6
+          name: E-Waste-Marketplace-native-v7
           path: apk-download/
           if-no-files-found: error
       - name: Publish a direct APK download
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create native-v6-demo apk-download/E-Waste-Marketplace-native-v6.apk apk-download/verification.txt apk-download/native-signin.png apk-download/ui-home.png apk-download/ui-photos.png apk-download/ui-earnings.png --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "E-Waste Marketplace — native accounts demo v6" --notes-file docs/native-v6-release.md --prerelease
+          gh release create native-v7-demo apk-download/E-Waste-Marketplace-native-v7.apk apk-download/verification.txt apk-download/native-signin.png apk-download/ui-home.png apk-download/ui-photos.png apk-download/ui-earnings.png apk-download/ui-welcome.png apk-download/ui-roles.png apk-download/ui-signup.png apk-download/ui-login.png apk-download/ui-recycler-home.png --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "E-Waste Marketplace — native accounts demo v7" --notes-file docs/native-v7-release.md --prerelease
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native-v6-diagnostics
+          name: native-v7-diagnostics
           path: |
             native-android/app/build/reports/androidTests/
             native-android/app/build/outputs/androidTest-results/

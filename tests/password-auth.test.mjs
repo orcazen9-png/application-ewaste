@@ -15,6 +15,7 @@ test('explicit role signup and login preserve identity, hash passwords and keep 
   assert.match(cred.password_hash,/^scrypt-32768-8-3\$/);assert.ok(!cred.password_hash.includes(password));
   const again=await f.ok(guest,'/auth/login','POST',{...data,username:data.username.toUpperCase()});assert.equal(again.user.id,account.user.id);assert.notEqual(again.token,account.token);
   const profile=await f.ok(account,'/me');assert.equal(profile.user.username,data.username);
+  const hindi=await f.ok(guest,'/auth/login','POST',{...data,language:'hi'});assert.equal(hindi.user.language,'hi');assert.equal((await f.ok(hindi,'/me')).user.language,'hi');
   if(role==='recycler'){assert.equal(profile.facilities.length,1);assert.equal(profile.facilities[0].verificationStatus,'unverified');assert.equal((await f.env.DB.prepare('SELECT count(*) AS n FROM demo_facility_access').first()).n,0);}
   await f.ok(again,'/auth/logout','POST');assert.equal((await f.call(again,'/me')).status,401);
  }

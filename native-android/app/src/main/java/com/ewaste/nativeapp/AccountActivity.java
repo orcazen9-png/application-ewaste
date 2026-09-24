@@ -83,7 +83,7 @@ public class AccountActivity extends AppCompatActivity {
     String localDate(String value){return Translations.date(language(),value);}
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     LinearLayout column(){LinearLayout value=new LinearLayout(this);value.setOrientation(LinearLayout.VERTICAL);return value;}
-    void goBack(){if(entry.visible()){entry.back();return;}if(session!=null&&screen.equals("edit")&&editStep>0){editStep--;render();}else if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}
+    void goBack(){if(working)return;if(entry.visible()){entry.back();return;}if(session!=null&&screen.equals("edit")&&editStep>0){editStep--;render();}else if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}
     void label(String value,int size){TextView text=ui.text(value,size,size<16?AccountDesign.MUTED:AccountDesign.INK,size>=18);text.setPadding(0,dp(size>=20?8:6),0,dp(10));page.addView(text);}
     void button(String title,String tag,Runnable run){boolean primary=tag.matches("account-redeem|account-verify|account-send-code|account-save-profile|finance-submit-invoice|finance-confirm-.*|finance-approve-.*|market-accept|market-submit|market-retry|.*save.*");ui.action(page,title,tag,run,primary?1:0);}
     EditText field(String title,String value,String tag,int type,int limit,Consumer<String> changed){
@@ -159,7 +159,7 @@ public class AccountActivity extends AppCompatActivity {
         AccountStore.validId(value.getJSONObject("user").getString("id"));
         if(!selectedRole.isEmpty()&&!selectedRole.equals(value.getJSONObject("user").getString("role")))throw new IOException(t("This account uses a different role. Choose the matching role to continue."));
         String previousToken=token();
-        vault.save(value);session=value;entry.entered=true;challengeId="";draft=null;screen="home";epoch++;NotificationJob.schedule(this);render();
+        vault.save(value);session=value;entry.entered=true;entry.step="welcome";entry.mode="login";market=new MarketplaceScreens(this);challengeId="";draft=null;screen="home";epoch++;NotificationJob.schedule(this);render();
         if(!previousToken.isEmpty()&&!previousToken.equals(token())){try{vault.queueRevocation(previousToken);drainRevocations();}catch(Exception ignored){/* The previous session expires on the server; the new session is already saved. */}}
     }
     void home()throws Exception {ui.home();}
@@ -257,7 +257,7 @@ public class AccountActivity extends AppCompatActivity {
         if(working)return;working=true;final int started=epoch;render();
         tasks.submit(()->{try{T value=operation.call();runOnUiThread(()->{if(isDestroyed()||isFinishing()||started!=epoch)return;working=false;done.accept(value);});}
             catch(Exception error){runOnUiThread(()->{if(isDestroyed()||isFinishing()||started!=epoch)return;working=false;
-                if(error instanceof AccountApi.Failure&&((AccountApi.Failure)error).status==401&&session!=null&&!entry.visible()){try{vault.clear();}catch(Exception ignored){}session=null;draft=null;epoch++;}
+                if(error instanceof AccountApi.Failure&&((AccountApi.Failure)error).status==401&&session!=null&&!entry.visible()){try{vault.clear();}catch(Exception ignored){}session=null;draft=null;entry.entered=false;entry.step="welcome";entry.mode="login";selectedRole="";epoch++;}
                 render();showError(error);});}});
     }
     String message(Throwable error){return error.getMessage()==null?t("Please try again."):Translations.error(this,language(),error.getMessage());}

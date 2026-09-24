@@ -56,11 +56,14 @@ export async function passwordRoute(request,env,path){
   const user=await env.DB.prepare('SELECT u.*,c.username,c.password_hash FROM auth_credentials c JOIN users u ON u.id=c.user_id WHERE c.username=?').bind(name).first();
   if(!await matches(secret,user?.password_hash)||!user||user.status!=='active')fail('Username or password is incorrect.',401);
   if(user.role!==input.role)fail('This account uses a different role. Go back and choose '+(user.role==='collector'?'Aggregator':'Recycler')+'.',409);
+  const language=input.language||user.language;if(!['en','hi','mr'].includes(language))fail('Choose a supported language.');
   const session=tokenData(),digest=await hash(session.token),time=now();
   const writes=await env.DB.batch([
     env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at,created_at) SELECT ?,id,?,? FROM users WHERE id=? AND status='active'").bind(digest,session.expiresAt,time,user.id),
-    env.DB.prepare("INSERT INTO audit_events(id,actor_id,action,resource_id,resource_version,created_at) SELECT ?,?,'session.created',?,?,? WHERE changes()=1").bind(id(),user.id,user.id,user.version,time)
+    env.DB.prepare("INSERT INTO audit_events(id,actor_id,action,resource_id,resource_version,created_at) SELECT ?,?,'session.created',?,?,? WHERE changes()=1").bind(id(),user.id,user.id,user.version,time),
+    env.DB.prepare("UPDATE users SET language=?,version=version+1,updated_at=? WHERE id=? AND language<>? AND status='active'").bind(language,time,user.id,language)
   ]);
   if(writes[0].meta.changes!==1)fail('Username or password is incorrect.',401);
-  return json({...session,user:publicUser(user)});
+  const updated=await env.DB.prepare('SELECT u.*,c.username FROM users u JOIN auth_credentials c ON c.user_id=u.id WHERE u.id=?').bind(user.id).first();
+  return json({...session,user:publicUser(updated)});
 }
