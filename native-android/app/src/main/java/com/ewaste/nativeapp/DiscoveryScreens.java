@@ -18,7 +18,7 @@ final class DiscoveryScreens {
  void remember(JSONObject f){a.store.cache(a.account(),"discovery-filter",f);}
  void open(boolean directory){search(directory,0);}
  void search(boolean directory,int page){JSONObject f=filter();String path=(directory?"/directory":"/listings")+"?page="+page+"&search="+enc(f.optString("search"))+"&material="+enc(f.optString("material"));JSONObject point=f.optJSONObject("location");if(point!=null)path+="&lat="+point.optDouble("latitude")+"&lon="+point.optDouble("longitude")+"&radius="+f.optInt("radius",50);if(directory&&f.optBoolean("pickup"))path+="&pickup=true";m.load(directory?"directory":"discover",path);}
- void filters(boolean directory){JSONObject f=filter();LinearLayout card=ui.card(a.page,AccountDesign.WHITE);ui.inside(card,()->{
+ void filters(boolean directory)throws Exception{JSONObject f=filter();LinearLayout card=ui.card(a.page,AccountDesign.WHITE);ui.inside(card,()->{
   a.field(a.t("Search name, city or area"),f.optString("search"),"discovery-search",InputType.TYPE_CLASS_TEXT,120,v->{m.put(f,"search",v);remember(f);});
   String[] names=new String[Catalog.NAMES.length+1];names[0]=a.t("All materials");System.arraycopy(Catalog.NAMES,0,names,1,Catalog.NAMES.length);int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(f.optString("material")))selected=i+1;
   a.choices(a.t("Material"),names,selected,pos->{m.put(f,"material",pos==0?"":Catalog.code(pos-1));remember(f);});
