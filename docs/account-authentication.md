@@ -22,4 +22,6 @@ Before password hashing, HMAC-keyed D1 counters limit signup/credential setup to
 
 Migration `0009_password_accounts.sql` is additive. A private export preceded deployment. Live tests created isolated QA aggregator/recycler accounts and checked signup, profile, role mismatch, login and logout; the QA users were subsequently suspended and their sessions revoked. No real user's invitation was redeemed or revoked for testing.
 
-The demo still needs password change/recovery, verified contact ownership, abuse monitoring and a complete recycler verification/review service before public production signup. These are separate from selecting an account role. Existing invitations remain valid, and account ownership is not inferred from names or matching contact text.
+The demo still needs password change/recovery, verified contact ownership, abuse monitoring and production verification criteria before public production signup. These are separate from selecting an account role. Existing invitations remain valid, and account ownership is not inferred from names or matching contact text.
+
+Recycler facility submission and operations review are now implemented separately from account signup; see [facility review](facility-review.md). A registered recycler remains unverified until reviewed.
