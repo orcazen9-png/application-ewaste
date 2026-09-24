@@ -41,16 +41,18 @@ async function commit(env,c,first,result,extras=[]) {
 const event=(env,requestId,actor,kind,message)=>(guard,args)=>env.DB.prepare(`INSERT INTO market_events(id,request_id,actor_id,kind,message,created_at) SELECT ?,?,?,?,?,? WHERE ${guard}`).bind(id(),requestId,actor,kind,message,now(),...args);
 const demoGrant="EXISTS(SELECT 1 FROM demo_facility_access d WHERE d.facility_id=f.id AND d.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))";
 const demoAccess=(env,r)=>env.DEMO_MODE==='true'&&!!r.demo_eligible;
-const eligible=(env,r)=>r.verification_status==='verified'||demoAccess(env,r);
+const reviewJoin=' LEFT JOIN facility_profiles fp ON fp.facility_id=f.id';
+const reviewed="f.verification_status='verified' AND (fp.facility_id IS NULL OR (fp.status='approved' AND fp.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND EXISTS(SELECT 1 FROM json_each(fp.profile_json,'$.categories') WHERE value=r.broad_code)))";
+const eligible=(env,r,code=r.broad_code)=>demoAccess(env,r)||(r.verification_status==='verified'&&(!r.review_status||(r.review_status==='approved'&&r.review_until>now()&&JSON.parse(r.review_profile).categories.includes(code))));
 async function facility(env,user){
-  const row=await env.DB.prepare(`SELECT f.*,${demoGrant} AS demo_eligible FROM facilities f JOIN organizations o ON o.id=f.organization_id WHERE o.owner_user_id=?`).bind(user.id).first();
+  const row=await env.DB.prepare(`SELECT f.*,fp.status AS review_status,fp.valid_until AS review_until,fp.profile_json AS review_profile,${demoGrant} AS demo_eligible FROM facilities f JOIN organizations o ON o.id=f.organization_id${reviewJoin} WHERE o.owner_user_id=?`).bind(user.id).first();
   if(!row)fail('Complete recycler onboarding first.',409);return row;
 }
 function cursor(request){const value=new URL(request.url).searchParams.get('after')||'';if(value)requireId(value);return value;}
-const requirementSelect=`SELECT r.*,u.display_name AS recycler_name,f.name AS facility_name,f.verification_status,${demoGrant} AS demo_eligible,
+const requirementSelect=`SELECT r.*,u.display_name AS recycler_name,f.name AS facility_name,f.verification_status,fp.status AS review_status,fp.valid_until AS review_until,fp.profile_json AS review_profile,${demoGrant} AS demo_eligible,
   coalesce((SELECT sum(coalesce(demand_base,quantity_base)) FROM reservations z WHERE z.requirement_id=r.id AND ${allocated}),0) AS allocated_base
-  FROM requirements r JOIN users u ON u.id=r.owner_id JOIN facilities f ON f.id=r.facility_id`;
-function projectRequirement(r,env){return {id:r.id,facilityId:r.facility_id,recyclerName:r.recycler_name||r.facility_name||'Recycler',verificationStatus:r.verification_status,demoAccess:demoAccess(env,r),
+  FROM requirements r JOIN users u ON u.id=r.owner_id JOIN facilities f ON f.id=r.facility_id${reviewJoin}`;
+function projectRequirement(r,env){return {id:r.id,facilityId:r.facility_id,recyclerName:r.recycler_name||r.facility_name||'Recycler',verificationStatus:r.review_status?(r.review_status==='approved'?(r.review_until>now()?'verified':'expired'):r.review_status):r.verification_status,reviewSource:r.review_status?'Freedom Value document review':'Existing facility record',demoAccess:demoAccess(env,r),
   broadCode:r.broad_code,detailedCode:r.detailed_code,title:r.title,specification:r.specification,unit:r.unit,rate:rupees(r.rate_paise),ratePaise:r.rate_paise,
   minimum:quantity(r.minimum_base,r.unit),target:quantity(r.target_base,r.unit),remaining:quantity(r.target_base===null?null:Math.max(0,r.target_base-r.allocated_base),r.unit),
   areas:JSON.parse(r.areas_json),modes:JSON.parse(r.modes_json),validUntil:r.valid_until,state:r.state,version:r.version,updatedAt:r.updated_at};}
@@ -82,7 +84,7 @@ async function requirementsRoute(request,env,user,record){
   const c=await command(request,env,user);if(c.previous)return c.previous;
   const v=version(c.input),n=normalizeRequirement(c.input),f=await facility(env,user),existing=await getRequirement(env,record);
   if(existing&&existing.owner_id!==user.id)fail('Requirement not found.',404);
-  if(n.state==='active'&&!eligible(env,f))fail('Facility verification is required before publishing. You can save a paused requirement.',403);
+  if(n.state==='active'&&!eligible(env,f,n.broadCode))fail('Facility verification is required before publishing. You can save a paused requirement.',403);
   if((existing?.version||0)!==v)fail('Requirement changed. Refresh before saving.',409);
   const time=now(),reason=text(c.input.reason,1000,'change reason');if(v&&!reason)fail('Explain this requirement change.');
   const statement=env.DB.prepare(`INSERT INTO requirements(id,owner_id,facility_id,broad_code,detailed_code,title,specification,unit,rate_paise,minimum_base,target_base,areas_json,modes_json,valid_until,state,version,created_at,updated_at)
@@ -115,7 +117,7 @@ function exclusions(r,s,amount,env){const reasons=[];
 async function matches(request,env,user){
   requireRole(user,'collector');const url=new URL(request.url),s=await source(env,user,url.searchParams.get('lotId'),url.searchParams.get('itemId'));
   const amount=url.searchParams.has('quantity')?quantityBase(url.searchParams.get('quantity'),s.item.unit):s.available;
-  const page=await rows(env.DB.prepare(requirementSelect+" WHERE r.broad_code=? AND r.id>? AND u.status='active' AND r.state='active' AND (f.verification_status='verified' OR (?=1 AND EXISTS(SELECT 1 FROM demo_facility_access d WHERE d.facility_id=f.id AND d.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')))) AND r.valid_until>? ORDER BY r.id LIMIT 51").bind(s.item.broad_code||'',cursor(request),env.DEMO_MODE==='true'?1:0,now()));
+  const page=await rows(env.DB.prepare(requirementSelect+" WHERE r.broad_code=? AND r.id>? AND u.status='active' AND r.state='active' AND ("+reviewed+" OR (?=1 AND EXISTS(SELECT 1 FROM demo_facility_access d WHERE d.facility_id=f.id AND d.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')))) AND r.valid_until>? ORDER BY r.id LIMIT 51").bind(s.item.broad_code||'',cursor(request),env.DEMO_MODE==='true'?1:0,now()));
   return json({lotVersion:s.lot.version,available:quantity(s.available,s.item.unit),matches:page.slice(0,50).map(r=>({...projectRequirement(r,env),exclusions:exclusions(r,s,amount,env),detailedReviewRequired:!!r.detailed_code&&!s.item.detailed_code})),nextCursor:page.length>50?page[49].id:null});
 }
 async function permittedRequest(env,user,record){

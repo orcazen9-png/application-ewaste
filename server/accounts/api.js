@@ -10,6 +10,7 @@ import {invitationRoute} from './invitations.js';
 import {financeRoute} from './finance.js';
 import {personalInsights} from './finance-read.js';
 import {passwordRoute} from './password-auth.js';
+import {facilityRoute} from './facilities.js';
 
 export async function accountApi(request, env) {
   const path = new URL(request.url).pathname;
@@ -22,6 +23,7 @@ export async function accountApi(request, env) {
   const invitation=await invitationRoute(request,env,path);if(invitation)return invitation;
   const auth = await authRoute(request, env, path); if (auth) return auth;
   const user = await authenticate(request, env);
+  const facility=await facilityRoute(request,env,user,path);if(facility)return facility;
   const insights=await personalInsights(request,env,user,path);if(insights)return insights;
   const finance=await financeRoute(request,env,user,path);if(finance)return finance;
   const profile = await profileRoute(request, env, user, path); if (profile) return profile;

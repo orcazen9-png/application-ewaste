@@ -45,6 +45,7 @@ public class AccountActivity extends AppCompatActivity {
     private static final String TAXONOMY="106-draft-v1";
     private static final int GREEN=0xff125b46,INK=0xff1e3028,BG=0xfff4f7f4;
     final ActivityResultLauncher<String> notificationPermission=registerForActivityResult(new ActivityResultContracts.RequestPermission(),allowed->{if(allowed)NotificationJob.schedule(this);});
+    final ActivityResultLauncher<String[]> facilityPicker=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(market!=null)market.facility.document(uri);});
     final ActivityResultLauncher<String[]> documentPicker=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(market!=null)market.finance.document(uri);});
     final ActivityResultLauncher<String[]> gallery=registerForActivityResult(new ActivityResultContracts.OpenDocument(),uri->{if(uri!=null)processPhoto(uri,account(),screen.equals("market")&&market.view().equals("evidence")?market.logistics.context():draft==null?"":draft.optString("id"));});
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
@@ -83,7 +84,7 @@ public class AccountActivity extends AppCompatActivity {
     String localDate(String value){return Translations.date(language(),value);}
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     LinearLayout column(){LinearLayout value=new LinearLayout(this);value.setOrientation(LinearLayout.VERTICAL);return value;}
-    void goBack(){if(working)return;if(entry.visible()){entry.back();return;}if(session!=null&&screen.equals("edit")&&editStep>0){editStep--;render();}else if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}
+    void goBack(){if(working)return;if(entry.visible()){entry.back();return;}if(session!=null&&screen.equals("market")&&market.view().equals("facility-form")&&market.data().optInt("step")>0){market.put(market.data(),"step",market.data().optInt("step")-1);market.facility.remember(market.data());render();}else if(session!=null&&screen.equals("edit")&&editStep>0){editStep--;render();}else if(session!=null&&!screen.equals("home")){draft=null;screen="home";render();}else finish();}
     void label(String value,int size){TextView text=ui.text(value,size,size<16?AccountDesign.MUTED:AccountDesign.INK,size>=18);text.setPadding(0,dp(size>=20?8:6),0,dp(10));page.addView(text);}
     void button(String title,String tag,Runnable run){boolean primary=tag.matches("account-redeem|account-verify|account-send-code|account-save-profile|finance-submit-invoice|finance-confirm-.*|finance-approve-.*|market-accept|market-submit|market-retry|.*save.*");ui.action(page,title,tag,run,primary?1:0);}
     EditText field(String title,String value,String tag,int type,int limit,Consumer<String> changed){
@@ -209,6 +210,7 @@ public class AccountActivity extends AppCompatActivity {
     }
     void profile()throws Exception {
         JSONObject user=session.getJSONObject("user");ui.heading(t("Profile"),t(user.optString("role").equals("collector")?"Aggregator workspace":"Recycler workspace"));
+        if(user.optString("role").equals("recycler"))ui.link(page,t("Your facility"),t("Business details, documents and review"),"profile-facility","box",market.facility::open);
         if(user.optString("username").isEmpty())button(t("Set up username and password"),"account-login-details",entry::attach);else ui.note(page,t("Username")+": "+user.optString("username"));
         EditText name=field(t("Name"),user.optString("displayName"),"account-profile-name",InputType.TYPE_CLASS_TEXT,100,null);
         EditText area=field(t("Area"),user.optString("locality"),"account-profile-area",InputType.TYPE_CLASS_TEXT,120,null);

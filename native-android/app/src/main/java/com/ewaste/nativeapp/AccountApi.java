@@ -23,6 +23,8 @@ public class AccountApi {
     public byte[] sharedPhoto(String requestId,String fileId,String token)throws Exception {AccountStore.validId(requestId);AccountStore.validId(fileId);return send("GET","/requests/"+requestId+"/photos/"+fileId,token,null,"image/jpeg");}
     public void uploadDocument(File file,String order,String doc,String mime,String name,String token)throws Exception {AccountStore.validId(order);AccountStore.validId(doc);send("PUT","/orders/"+order+"/finance/documents/"+doc+"?name="+java.net.URLEncoder.encode(name,"UTF-8"),token,read(new FileInputStream(file),5242880),mime);}
     public byte[] document(String order,String doc,String token)throws Exception {AccountStore.validId(order);AccountStore.validId(doc);return send("GET","/orders/"+order+"/finance/documents/"+doc,token,null,"application/octet-stream");}
+    public void uploadFacilityDocument(File file,String doc,String mime,String name,String token)throws Exception{AccountStore.validId(doc);send("PUT","/facility/documents/"+doc+"?name="+URLEncoder.encode(name,"UTF-8"),token,read(new FileInputStream(file),5242880),mime);}
+    public byte[] facilityDocument(String doc,String token)throws Exception{AccountStore.validId(doc);return send("GET","/facility/documents/"+doc,token,null,"application/octet-stream");}
     private byte[] send(String method,String path,String token,byte[] data,String type)throws Exception {
         if(!path.startsWith("/")||path.contains("..")||path.contains(":"))throw new IOException("Invalid request path.");
         String origin=BuildConfig.ACCOUNT_API_ORIGIN;

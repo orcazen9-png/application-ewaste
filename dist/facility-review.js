@@ -1,0 +1,28 @@
+import {CATALOG} from './waste-catalog.js';
+let h;
+export function connectFacilityReview(helpers){h=helpers;}
+const label=s=>({draft:'Draft',pending:'Awaiting review',approved:'Approved by Freedom Value',rejected:'Changes required',expired:'Review expired'}[s]||s);
+const date=s=>s?new Date(s).toLocaleString('en-IN'):'Not set';
+export async function facilityQueue(after=''){
+ const {api,content,node,button,field}=h,d=await api('/facilities'+(after?'?after='+encodeURIComponent(after):''));
+ content.replaceChildren(node('h2','Facility reviews'),node('p','Review recycler details and supporting evidence before allowing buying requirements. This is a Freedom Value review, not government certification.','meta'));
+ const filter=field(content,'review-status','Status on this page','select','',[['','All statuses'],...['pending','approved','rejected','expired','draft'].map(s=>[s,label(s)])]);filter.required=false;
+ const grid=node('div',undefined,'cards');content.append(grid);const render=()=>{grid.replaceChildren();for(const f of d.facilities.filter(f=>!filter.value||f.status===filter.value)){const c=node('article',undefined,'card');c.append(node('span',label(f.status),'eyebrow'),node('h3',f.name||'Unnamed facility'),node('p',f.locality),node('p',f.recycler,'meta'),node('p','Updated '+date(f.updated_at),'meta'));button(c,'Review facility',()=>facilityDetail(f.id));grid.append(c);}if(!grid.childElementCount)grid.append(node('p','No facilities with this status on this page.'));};filter.onchange=render;render();if(d.nextCursor)button(content,'Next page',()=>facilityQueue(d.nextCursor));if(after)button(content,'First page',()=>facilityQueue());
+}
+export async function facilityDetail(id){
+ const {api,content,node,button,form,mutate}=h,d=await api('/facilities/'+id),p=d.profile;
+ content.replaceChildren(node('h2',p.name||'Facility review'));button(content,'Back to facility reviews',()=>facilityQueue());button(content,'Refresh',()=>facilityDetail(id));
+ const top=node('article',undefined,'card');top.append(node('h3',label(d.status)),node('p','Record version '+d.version+' · Submission '+(d.submittedVersion??'not submitted')),node('p','Review valid until: '+date(d.validUntil)),node('p',d.reviewLabel,'meta'));content.append(top);
+ const details=(parent,profile)=>{const list=node('dl');for(const [k,title] of Object.entries({address:'Facility address',locality:'City or area',contact:'Business contact',hours:'Operating hours',areas:'Service areas',authority:'Document issuing authority',registration:'Registration / document reference',documentExpiry:'Document expiry'})){list.append(node('dt',title),node('dd',profile[k]||'Not supplied'));}list.append(node('dt','Pickup ability'),node('dd',profile.pickup?'Can arrange pickup':'Does not arrange pickup'),node('dt','Submitted material scope'),node('dd',(profile.categories||[]).map(code=>CATALOG.broad_categories.find(c=>c.id===code)?.name||code).join(', ')));parent.append(list);
+  for(const docId of profile.documentIds||[]){const doc=d.documents.find(x=>x.id===docId);if(doc){const a=node('a','Open '+doc.name+' ('+Math.ceil(doc.size/1024)+' KB)');a.href='/api/ops/facilities/'+id+'/documents/'+doc.id;a.target='_blank';a.rel='noopener';const line=node('p');line.append(a);parent.append(line);}}
+ };
+ const current=node('article',undefined,'card');current.append(node('h3','Current submitted details'));details(current,p);content.append(current);
+ if(['pending','approved','expired'].includes(d.status)){
+  const action=(decision,v)=>mutate('/facilities/'+id+'/review','POST',{expectedVersion:d.version,submissionVersion:d.submittedVersion,decision,...v,...(decision==='approved'?{validUntil:new Date(v.validUntil).toISOString()}:{})});
+  const fields=[['source','Evidence source and reference checked','textarea'],['reason','Decision reason visible to the recycler','textarea']];
+  if(d.status==='pending')form(content,'Approve submitted material scope',[...fields,['validUntil','Review expires (local date and time)','datetime-local']],v=>action('approved',v));
+  form(content,d.status==='pending'?'Request corrections':'Withdraw approval',fields,v=>action('rejected',v));
+ }
+ content.append(node('h2','Review history'));if(!d.reviews.length)content.append(node('p','No review decision yet.'));for(const r of d.reviews){const c=node('article',undefined,'card');c.append(node('h3',label(r.decision)),node('p',r.reason),node('p','Source: '+r.source),node('p',r.reviewer+' · '+date(r.created_at)+' · Submission '+r.submission_version,'meta'));content.append(c);}
+ content.append(node('h2','Submitted revisions'));for(const s of d.submissions){const box=node('details');box.append(node('summary','Submission '+s.version+' · '+date(s.createdAt)));details(box,s.profile);content.append(box);}
+}

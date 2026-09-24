@@ -6,6 +6,7 @@ import {quantityBase} from './lots.js';
 import {authenticateStaff} from './staff-auth.js';
 import {invitationRoute} from './invitations.js';
 import {financeRoute} from './finance.js';
+import {facilityRoute} from './facilities.js';
 import {analyticsRoute} from './analytics.js';
 
 const parse=value=>value?JSON.parse(value):null;
@@ -148,6 +149,7 @@ export async function logisticsRoute(request,env,user,path){
 export async function operationsApi(request,env){
   const invited=await invitationRoute(request,env,new URL(request.url).pathname);if(invited)return invited;
   const user=await authenticateStaff(request,env),path=new URL(request.url).pathname;
+  const facility=await facilityRoute(request,env,user,path);if(facility)return facility;
   const finance=await financeRoute(request,env,user,path);if(finance)return finance;
   const analytics=await analyticsRoute(request,env,user,path);if(analytics)return analytics;
   if(path==='/api/ops/auth/logout'&&request.method==='POST'){

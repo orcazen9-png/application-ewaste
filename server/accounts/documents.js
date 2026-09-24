@@ -1,5 +1,12 @@
 import {bytes,fail,hash,json,now,requireId,text} from './common.js';
 import {imageInfo} from './files.js';
+export function documentInfo(data,declared){
+  let mime;
+  if(declared==='application/pdf'){
+    if(!/^(%PDF-1\.[0-9]|%PDF-2\.0)/.test(new TextDecoder().decode(data.subarray(0,9)))||!new TextDecoder().decode(data.subarray(Math.max(0,data.length-1024))).includes('%%EOF'))fail('Choose a complete PDF document.',415);mime=declared;
+  }else mime=imageInfo(data).type;
+  if(mime!==declared)fail('Document type does not match its contents.',415);return mime;
+}
 export const financeStaff=user=>!!user.staff&&['finance','operations_finance'].includes(user.role);
 export async function financeOrder(env,user,orderId){
   requireId(orderId);const o=await env.DB.prepare(`SELECT o.*,s.quantity_base,s.unit,j.accepted_base,j.cost_json,j.cost_version,j.cost_ack_version
@@ -22,11 +29,7 @@ export async function documentRoute(request,env,user,o,documentId){
   if(request.method!=='PUT')fail('Method not supported.',405);
   if(user.staff&&!financeStaff(user))fail('Finance permission is required to upload documents.',403);
   if(old&&old.owner_actor!==user.actor)fail('Document not found.',404);
-  const data=await bytes(request,5242880),declared=request.headers.get('Content-Type')?.split(';')[0];let mime;
-  if(declared==='application/pdf'){
-    if(!/^%PDF-1\.[0-9]|^%PDF-2\.0/.test(new TextDecoder().decode(data.subarray(0,9)))||!new TextDecoder().decode(data.subarray(Math.max(0,data.length-1024))).includes('%%EOF'))fail('Choose a complete PDF document.',415);mime=declared;
-  }else mime=imageInfo(data).type;
-  if(mime!==declared)fail('Document type does not match its contents.',415);
+  const data=await bytes(request,5242880),mime=documentInfo(data,request.headers.get('Content-Type')?.split(';')[0]);
   const digest=await hash(data),name=text(new URL(request.url).searchParams.get('name')||'document',150,'document name');
   if(/[\r\n/\\]/.test(name)||!name)fail('Choose a valid document filename.');
   if(old&&old.sha256!==digest)fail('Documents are immutable. Upload a new revision.',409);

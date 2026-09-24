@@ -15,8 +15,9 @@ final class MarketplaceScreens {
     final AccountActivity a;
     final LogisticsScreens logistics;
     final FinanceScreens finance;
+    final FacilityScreens facility;
     JSONObject state=new JSONObject();
-    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);finance=new FinanceScreens(this);}
+    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);finance=new FinanceScreens(this);facility=new FacilityScreens(this);}
     void put(JSONObject o,String k,Object v){Catalog.put(o,k,v);}
     String view(){return state.optString("view","");}
     JSONObject data(){JSONObject d=state.optJSONObject("data");return d==null?new JSONObject():d;}
@@ -46,10 +47,12 @@ final class MarketplaceScreens {
                 }
                 JSONObject payload=new JSONObject(pending.getJSONObject("input").toString());
                 if(pending.getString("path").endsWith("/finance/invoice")){String doc=payload.getString("documentId"),order=pending.getString("path").split("/")[2];a.api.uploadDocument(finance.documentFile(owner,doc),order,doc,payload.getString("documentMime"),payload.getString("documentName"),token);payload.remove("documentMime");payload.remove("documentName");}
+                if(pending.getString("path").equals("/facility"))facility.upload(owner,token,payload);
                 JSONObject result=a.api.request(pending.getString("method"),pending.getString("path"),token,payload);a.store.finishMarket(owner);return new JSONObject().put("result",result).put("destination",pending.getString("destination"));}
             catch(AccountApi.Failure error){if(error.status>=400&&error.status<500&&error.status!=401&&error.status!=408&&error.status!=429)a.store.finishMarket(owner);throw error;}
         },result->{String destination=result.optString("destination");JSONObject value=result.optJSONObject("result");
-            if(destination.equals("portfolio"))load("portfolio","/requirements");
+            if(destination.equals("facility")){a.store.cache(a.account(),"facility-draft",new JSONObject());facility.open();}
+            else if(destination.equals("portfolio"))load("portfolio","/requirements");
             else if(destination.equals("order"))load("order","/orders/"+value.optString("id"));
             else if(destination.equals("finance"))finance.open(value.optString("id"));
             else if(destination.equals("logistics"))logistics.open(value.optString("id"));
@@ -65,6 +68,8 @@ final class MarketplaceScreens {
     void render()throws Exception{
         pending();JSONObject d=data();
         switch(view()){
+            case "facility":facility.render(d);break;
+            case "facility-form":facility.form(d);break;
             case "portfolio":portfolio(d);break;
             case "requirement":requirement(d);break;
             case "matches":matches(d);break;
