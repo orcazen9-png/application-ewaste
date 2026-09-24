@@ -29,6 +29,7 @@ public class AccountActivity extends AppCompatActivity {
     AccountStore store;
     SessionVault vault;
     MarketplaceScreens market;
+    NearbyLocation nearby;
     AccountDesign ui;
     AccountEntry entry;
     LotEditor lotEditor;
@@ -51,7 +52,7 @@ public class AccountActivity extends AppCompatActivity {
     final ActivityResultLauncher<Uri> camera=registerForActivityResult(new ActivityResultContracts.TakePicture(),ok->{if(ok&&!cameraId.isEmpty())processPhoto(Uri.fromFile(store.photo(cameraAccount,cameraId)),cameraAccount,cameraDraft);});
 
     @Override public void onCreate(Bundle saved){
-        super.onCreate(saved);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);ui=new AccountDesign(this);entry=new AccountEntry(this);lotEditor=new LotEditor(this);market=new MarketplaceScreens(this);
+        super.onCreate(saved);nearby=new NearbyLocation(this);api=apiFactory.get();store=new AccountStore(this);vault=new SessionVault(this);ui=new AccountDesign(this);entry=new AccountEntry(this);lotEditor=new LotEditor(this);market=new MarketplaceScreens(this);
         try {
             try{session=vault.read();}catch(Exception unreadableSession){vault.clear();session=null;}
             if(session!=null&&Instant.parse(session.getString("expiresAt")).isBefore(Instant.now())){vault.clear();session=null;}
@@ -75,7 +76,7 @@ public class AccountActivity extends AppCompatActivity {
         if(draft!=null)out.putString("draftId",draft.optString("id"));
         out.putInt("editStep",editStep);out.putInt("itemIndex",itemIndex);if(screen.equals("market"))market.persist();
     }
-    @Override protected void onDestroy(){tasks.submit(()->store.close());tasks.shutdown();super.onDestroy();}
+    @Override protected void onDestroy(){tasks.submit(()->store.close());tasks.shutdown();if(nearby!=null)nearby.cancel();super.onDestroy();}
     String account(){return session==null?"":session.optJSONObject("user").optString("id");}
     String token(){return session==null?"":session.optString("token");}
     String language(){return session==null||entry.visible()?selectedLanguage:session.optJSONObject("user").optString("language","en");}

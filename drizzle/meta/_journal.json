@@ -78,6 +78,13 @@
       "when": 1790208000008,
       "tag": "0010_facility_review",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1790208000009,
+      "tag": "0011_discovery_negotiation",
+      "breakpoints": true
     }
   ]
 }

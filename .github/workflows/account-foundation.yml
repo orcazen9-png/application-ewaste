@@ -60,7 +60,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           script: |
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest --no-daemon
             timeout 20s adb pull /sdcard/account-draft.png native-android/native-account-draft.png
             timeout 20s adb pull /sdcard/market-order.png native-android/native-market-order.png
             timeout 20s adb pull /sdcard/logistics.png native-android/native-logistics.png
@@ -82,7 +82,7 @@ jobs:
             adb shell settings put system font_scale 1.3
             adb install -r native-android/app/build/outputs/apk/debug/app-debug.apk
             adb install -r -t native-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee native-android/compact-ui-test.txt
+            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee native-android/compact-ui-test.txt
             grep -q 'OK (2 tests)' native-android/compact-ui-test.txt
             timeout 20s adb pull /sdcard/compact-photos.png native-android/compact-photos.png
             timeout 20s adb pull /sdcard/compact-earnings.png native-android/compact-earnings.png

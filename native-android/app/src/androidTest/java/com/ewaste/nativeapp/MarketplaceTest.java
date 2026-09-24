@@ -83,7 +83,7 @@ public class MarketplaceTest {
         try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
             s.onActivity(a->a.root.findViewWithTag("entry-continue").performClick());
             idle(s);s.onActivity(a->{try{a.createDraft();String photo=UUID.randomUUID().toString();try(FileOutputStream out=new FileOutputStream(a.store.photo(a.account(),photo))){out.write(new byte[]{1,2,3});}a.store.attachPhoto(a.account(),a.draft.getString("id"),photo);a.draft=a.store.draft(a.account(),a.draft.getString("id"));a.market.runAssessment(a.draft,null,photo);}catch(Exception e){throw new AssertionError(e);}});idle(s);
-            assertEquals(1,uploads[0]);assertEquals(0,lotWrites[0]);onView(withText("Keep manual selection")).inRoot(isDialog()).perform(click());s.onActivity(a->{assertEquals("",a.draft.optString("title"));assertEquals("",a.draft.optJSONArray("items").optJSONObject(0).optString("quantity"));});
+            assertEquals(1,uploads[0]);assertEquals(0,lotWrites[0]);s.onActivity(a->{assertEquals(1,a.editStep);assertEquals("B01",a.draft.optJSONArray("items").optJSONObject(0).optString("broadCode"));assertEquals("",a.draft.optString("title"));assertEquals("",a.draft.optJSONArray("items").optJSONObject(0).optString("quantity"));});
         }finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
     }
     static class MarketApi extends AccountApi {

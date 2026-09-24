@@ -35,7 +35,10 @@ final class LotEditor {
     JSONObject line()throws Exception{JSONArray lines=a.draft.getJSONArray("items");a.itemIndex=Math.max(0,Math.min(a.itemIndex,lines.length()-1));return lines.getJSONObject(a.itemIndex);}
     void details()throws Exception{
         JSONObject item=line();JSONArray lines=a.draft.getJSONArray("items");a.page.addView(ui.text(a.t("Tell us about the material"),24,AccountDesign.INK,true));ui.note(a.page,a.t("Material line ")+(a.itemIndex+1)+a.t(" of ")+lines.length());
+        if(lines.length()>1)for(int i=0;i<lines.length();i++){final int index=i;JSONObject other=lines.getJSONObject(i);ui.link(a.page,other.optString("name",category(other)),category(other)+" · "+other.optString("quantity")+" "+a.t(other.optString("unit")),"material-select-"+i,"box",()->{a.itemIndex=index;a.render();});}
         LinearLayout material=ui.card(a.page,AccountDesign.WHITE);ui.inside(material,()->{
+            a.field(a.t("Item name"),item.optString("name"),"material-name",InputType.TYPE_CLASS_TEXT,120,v->a.saveField(item,"name",v));
+            if(item.optBoolean("suggested"))ui.note(material,a.t("Suggested from your photo. Check the category, unit and estimated count. Enter measured weight for kg."));
             String[] names=new String[Catalog.NAMES.length+1];names[0]=a.t("Choose a category");System.arraycopy(Catalog.NAMES,0,names,1,Catalog.NAMES.length);int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(item.optString("broadCode")))selected=i+1;
             a.choices(a.t("Waste category"),names,selected,pos->{Object code=pos==0?JSONObject.NULL:Catalog.code(pos-1);if(!Objects.equals(item.opt("broadCode"),code))a.saveField(item,"detailedCode",JSONObject.NULL);a.saveField(item,"broadCode",code);a.saveField(item,"reviewState",pos==0?"needs_review":"confirmed");}).setTag("account-category");
             LinearLayout row=ui.row();row.setGravity(Gravity.TOP);material.addView(row);LinearLayout quantity=a.column(),unit=a.column();LinearLayout.LayoutParams qp=new LinearLayout.LayoutParams(0,-2,1);qp.rightMargin=a.dp(8);row.addView(quantity,qp);row.addView(unit,new LinearLayout.LayoutParams(0,-2,1));
@@ -43,6 +46,8 @@ final class LotEditor {
             ui.inside(unit,()->a.choices(a.t("Unit"),new String[]{"kg","piece"},item.optString("unit").equals("piece")?1:0,pos->a.saveField(item,"unit",pos==0?"kg":"piece")));
             String[] conditions={"unknown","unsorted","sorted","damaged"};a.choices(a.t("Condition"),new String[]{"Not checked","Unsorted","Sorted","Damaged"},Math.max(0,Arrays.asList(conditions).indexOf(item.optString("condition"))),pos->a.saveField(item,"condition",conditions[pos]));
         });
+        if(lines.length()>1)ui.action(a.page,a.t("Remove this material"),"material-remove",()->{try{JSONArray keep=new JSONArray();for(int j=0;j<lines.length();j++)if(j!=a.itemIndex)keep.put(lines.getJSONObject(j));a.draft.put("items",keep);a.store.save(a.account(),a.draft);a.itemIndex=0;a.render();}catch(Exception e){a.showError(e);}},0);
+        if(item.optBoolean("suggested")){CheckBox confirm=new CheckBox(a);confirm.setText(a.t("I checked this item, category and quantity"));confirm.setChecked(item.optBoolean("suggestionConfirmed"));confirm.setMinHeight(a.dp(48));a.page.addView(confirm);confirm.setOnCheckedChangeListener((b,on)->a.saveField(item,"suggestionConfirmed",on));}
         if(lines.length()>1)ui.action(a.page,a.t("Next material line"),"account-next-line",()->{a.itemIndex=(a.itemIndex+1)%lines.length();a.render();},0);
         LinearLayout lot=ui.card(a.page,AccountDesign.WHITE);ui.inside(lot,()->{
             a.field(a.t("Lot name"),a.draft.optString("title"),"account-lot-title",InputType.TYPE_CLASS_TEXT,120,v->a.saveField(a.draft,"title",v)).setHint(a.t("For example, office laptops"));
@@ -56,17 +61,17 @@ final class LotEditor {
     void review()throws Exception{
         a.page.addView(ui.text(a.t("Review your lot"),24,AccountDesign.INK,true));ui.note(a.page,a.t("Check the details before saving online."));LinearLayout card=ui.card(a.page,AccountDesign.WHITE);JSONArray photos=a.draft.getJSONArray("fileIds");if(photos.length()>0){preview(card,photos.getString(0),150);ui.space(card,14);}
         card.addView(ui.text(a.draft.optString("title").isEmpty()?a.t("Untitled lot"):a.draft.optString("title"),22,AccountDesign.INK,true));ui.note(card,a.draft.optString("locality"));ui.divider(card);
-        JSONArray lines=a.draft.getJSONArray("items");for(int i=0;i<lines.length();i++){JSONObject item=lines.getJSONObject(i);ui.keyValue(card,category(item),item.optString("quantity","")+" "+a.t(item.optString("unit")));}
+        JSONArray lines=a.draft.getJSONArray("items");for(int i=0;i<lines.length();i++){JSONObject item=lines.getJSONObject(i);ui.keyValue(card,item.optString("name",category(item))+" · "+category(item),item.optString("quantity","")+" "+a.t(item.optString("unit")));}
         if(!a.draft.optString("notes").isEmpty())ui.note(card,a.draft.optString("notes"));ui.action(card,a.t("Edit details"),"lot-edit-details",()->{a.editStep=1;a.render();},0);ui.action(a.page,a.t("Edit photos"),"lot-edit-photos",()->{a.editStep=0;a.render();},0);
-        JSONObject saved=a.store.draft(a.account(),a.draft.getString("id"));if(saved.optString("syncState").equals("synced")){ui.pill(a.page,a.t("Saved online"),AccountDesign.SOFT);ui.space(a.page,12);ui.action(a.page,a.t("Find recycler requirements for this line"),"account-find-matches",a.market::findMatches,1);}
+        JSONObject saved=a.store.draft(a.account(),a.draft.getString("id"));if(saved.optString("syncState").equals("synced")){ui.pill(a.page,a.t("Saved online"),AccountDesign.SOFT);ui.space(a.page,12);ui.action(a.page,a.t("Post for recyclers"),"lot-post",()->a.market.load("listing","/listings/"+a.draft.optString("id")),1);ui.action(a.page,a.t("Find recycler requirements for this line"),"account-find-matches",a.market::findMatches,1);}
         ui.note(a.page,a.t("Changes are saved on this phone as you type."));
     }
     boolean validDetails(){try{
         JSONObject current=line();String quantity=current.optString("quantity");if(current.isNull("broadCode")||current.optString("broadCode").isEmpty())throw new Exception(a.t("Choose a category for this material."));
         if(!(current.optString("unit").equals("piece")?quantity.matches("\\d{1,6}"):quantity.matches("\\d{1,6}(\\.\\d{1,3})?"))||new BigDecimal(quantity).signum()<=0){EditText field=a.root.findViewWithTag("account-lot-quantity");field.setError(a.t("Enter a valid quantity."));field.requestFocus();return false;}
         for(String[] spec:new String[][]{{"title","account-lot-title","Enter a lot name."},{"locality","account-lot-area","Enter a collection area."}})if(a.draft.optString(spec[0]).trim().isEmpty()){EditText field=a.root.findViewWithTag(spec[1]);field.setError(a.t(spec[2]));field.requestFocus();return false;}
-        JSONArray lines=a.draft.getJSONArray("items");for(int i=0;i<lines.length();i++){JSONObject item=lines.getJSONObject(i);String q=item.optString("quantity");if(item.isNull("broadCode")||!(item.optString("unit").equals("piece")?q.matches("\\d{1,6}"):q.matches("\\d{1,6}(\\.\\d{1,3})?"))||new BigDecimal(q).signum()<=0){a.itemIndex=i;a.render();a.showError(new Exception(a.t("Complete each material before reviewing your lot.")));return false;}}
-        return true;
+        JSONArray lines=a.draft.getJSONArray("items");for(int i=0;i<lines.length();i++){JSONObject item=lines.getJSONObject(i);String q=item.optString("quantity");if(item.optBoolean("suggested")&&!item.optBoolean("suggestionConfirmed")||item.isNull("broadCode")||!(item.optString("unit").equals("piece")?q.matches("\\d{1,6}"):q.matches("\\d{1,6}(\\.\\d{1,3})?"))||new BigDecimal(q).signum()<=0){a.itemIndex=i;a.render();a.showError(new Exception(a.t("Complete each material before reviewing your lot.")));return false;}}
+        for(int i=0;i<lines.length();i++)lines.getJSONObject(i).put("reviewState","confirmed");a.store.save(a.account(),a.draft);return true;
     }catch(Exception e){a.showError(e);return false;}}
     void footer()throws Exception{
         LinearLayout footer=a.column();footer.setPadding(a.dp(20),a.dp(8),a.dp(20),a.dp(10));footer.setBackgroundColor(AccountDesign.WHITE);a.root.addView(footer,new LinearLayout.LayoutParams(-1,-2));

@@ -1,3 +1,4 @@
+import {coordinates,directoryReview} from './discovery.js';
 import {CATALOG} from '../../dist/waste-catalog.js';
 import {begin,commit} from './commands.js';
 import {bytes,fail,hash,id,json,now,requireId,rows,text} from './common.js';
@@ -25,7 +26,8 @@ function normalize(input,submit){
  const p={};for(const [k,max]of Object.entries({name:120,address:600,locality:120,contact:200,hours:200,areas:1000,authority:200,registration:200}))p[k]=submit?needed(input[k],max,k==='registration'?'registration or document reference':k):text(input[k],max,k);
  if(!Array.isArray(input.categories)||input.categories.length>20||input.categories.some(v=>!CATALOG.broad_categories.some(c=>c.id===v)))fail('Choose supported material categories.');p.categories=[...new Set(input.categories)];
  if(!Array.isArray(input.documentIds)||input.documentIds.length>5)fail('Attach up to five facility documents.');p.documentIds=[...new Set(input.documentIds.map(requireId))];
- p.pickup=input.pickup===true;
+ p.pickup=input.pickup===true;p.directoryConsent=input.directoryConsent===true;p.location=coordinates(input.location);p.phone=text(input.phone||'',30,'phone');p.email=text(input.email||'',200,'email');
+ if(p.phone&&!/^[+0-9 ()-]{6,30}$/.test(p.phone))fail('Enter a valid business phone.');if(p.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email))fail('Enter a valid business email.');
  p.documentExpiry=text(input.documentExpiry,10,'document expiry');if(p.documentExpiry&&(!/^\d{4}-\d{2}-\d{2}$/.test(p.documentExpiry)||!Number.isFinite(Date.parse(p.documentExpiry))||new Date(p.documentExpiry).toISOString().slice(0,10)!==p.documentExpiry))fail('Use a valid expiry date in YYYY-MM-DD format.');
  if(submit&&(!p.categories.length||!p.documentIds.length))fail('Choose at least one material category and attach registration evidence.');
  if(submit&&p.documentExpiry&&p.documentExpiry+'T23:59:59.999Z'<=now())fail('The document has expired. Upload current evidence.');return p;
@@ -54,7 +56,7 @@ async function file(request,env,user,f,doc){
 }
 export async function facilityRoute(request,env,user,path){
  const personal=path.match(/^\/api\/v1\/facility(?:\/documents\/([^/]+))?$/);
- const staffPath=path.match(/^\/api\/ops\/facilities(?:\/([^/]+))?(?:\/(review|documents))?(?:\/([^/]+))?$/);
+ const staffPath=path.match(/^\/api\/ops\/facilities(?:\/([^/]+))?(?:\/(review|documents|authorization))?(?:\/([^/]+))?$/);
  if(!personal&&!staffPath)return null;
  user={...user,actor:user.actor||'user:'+user.id};
  if(staffPath&&!reviewer(user))fail('Operations permission is required for facility review.',403);
@@ -65,9 +67,10 @@ export async function facilityRoute(request,env,user,path){
   return json({facilities:page.slice(0,50).map(p=>({...p,status:effective(p)})),nextCursor:page.length>50?page[49].id:null});
  }
  const f=await owned(env,user,staffPath?.[1]);
+ if(staffPath?.[2]==='authorization'&&request.method==='POST')return directoryReview(request,env,user,f,await profile(env,f));
  const doc=personal?.[1]||(staffPath?.[2]==='documents'?staffPath[3]:null);if(doc)return file(request,env,user,f,doc);
  if(staffPath?.[3])fail('Not found.',404);
- if(request.method==='GET'&&!staffPath?.[2])return json(await projection(env,user,f));
+ if(request.method==='GET'&&!staffPath?.[2])return json({...await projection(env,user,f),authorization:await stmt(env,'SELECT * FROM directory_authorizations WHERE facility_id=?',f.id).first()});
  if(personal&&request.method==='PUT'){
   const c=await begin(request,env,user);if(c.previous)return c.previous;
   const submit=c.input.submit===true,p=normalize(c.input.profile,submit);await documentsReady(env,user,f,p);

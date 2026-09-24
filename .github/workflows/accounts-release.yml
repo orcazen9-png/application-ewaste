@@ -86,7 +86,7 @@ jobs:
             adb pull /sdcard/release-signin.xml apk-download/release-signin.xml
             grep -q 'Sign up' apk-download/release-signin.xml
             adb exec-out screencap -p > apk-download/native-signin.png
-            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=8 -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest --no-daemon
+            cd native-android && bash ./gradlew connectedDebugAndroidTest -PaccountFoundation=true -PinvitationSignIn=false -PaccountApiOrigin="$API_ORIGIN" -PappVersionCode=8 -Pandroid.testInstrumentationRunnerArguments.class=com.ewaste.nativeapp.AccountFoundationTest,com.ewaste.nativeapp.MarketplaceTest,com.ewaste.nativeapp.LogisticsTest,com.ewaste.nativeapp.FinanceTest,com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.AccountEntryTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest --no-daemon
             adb pull /sdcard/ui-home.png apk-download/ui-home.png
             adb pull /sdcard/ui-photos.png apk-download/ui-photos.png
             adb pull /sdcard/ui-details.png apk-download/ui-details.png
@@ -105,7 +105,7 @@ jobs:
             adb shell settings put system font_scale 1.3
             adb install -r native-android/app/build/outputs/apk/debug/app-debug.apk
             adb install -r -t native-android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee apk-download/compact-ui-test.txt
+            adb shell am instrument -w -r -e class com.ewaste.nativeapp.NativeDesignTest,com.ewaste.nativeapp.FacilityTest,com.ewaste.nativeapp.DiscoveryTest -e screenshotPrefix compact com.ewaste.marketplace.collector.test/androidx.test.runner.AndroidJUnitRunner | tee apk-download/compact-ui-test.txt
             grep -q 'OK (2 tests)' apk-download/compact-ui-test.txt
             adb pull /sdcard/compact-photos.png apk-download/compact-photos.png
             adb pull /sdcard/compact-earnings.png apk-download/compact-earnings.png

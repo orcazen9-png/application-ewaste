@@ -20,6 +20,7 @@ public class AccountApi {
     }
     public byte[] photo(String fileId,String token)throws Exception {return send("GET","/files/"+fileId,token,null,"image/jpeg");}
     public byte[] logisticsPhoto(String orderId,String fileId,String token)throws Exception {AccountStore.validId(orderId);AccountStore.validId(fileId);return send("GET","/orders/"+orderId+"/logistics/photos/"+fileId,token,null,"image/jpeg");}
+    public byte[] listingPhoto(String lot,String file,String token)throws Exception{AccountStore.validId(lot);AccountStore.validId(file);return send("GET","/listings/"+lot+"/photos/"+file,token,null,"image/jpeg");}
     public byte[] sharedPhoto(String requestId,String fileId,String token)throws Exception {AccountStore.validId(requestId);AccountStore.validId(fileId);return send("GET","/requests/"+requestId+"/photos/"+fileId,token,null,"image/jpeg");}
     public void uploadDocument(File file,String order,String doc,String mime,String name,String token)throws Exception {AccountStore.validId(order);AccountStore.validId(doc);send("PUT","/orders/"+order+"/finance/documents/"+doc+"?name="+java.net.URLEncoder.encode(name,"UTF-8"),token,read(new FileInputStream(file),5242880),mime);}
     public byte[] document(String order,String doc,String token)throws Exception {AccountStore.validId(order);AccountStore.validId(doc);return send("GET","/orders/"+order+"/finance/documents/"+doc,token,null,"application/octet-stream");}

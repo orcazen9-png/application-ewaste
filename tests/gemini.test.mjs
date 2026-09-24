@@ -32,7 +32,7 @@ test('catalog counts and provider schema enforce scope, no key in URL, no invent
  assert.throws(()=>validateAssessment({...answer,items:[{code:'B01',evidence:'x',approximateCount:0}]},'broad'),/invalid count/);
  assert.deepEqual(validateAssessment(lot,'broad').items.map(i=>i.code),['B01','B02']);
  const repeated=validateAssessment({...lot,items:[{code:'B01',evidence:'Laptop',approximateCount:1},{code:'B01',evidence:'Desktop tower',approximateCount:1},{code:'B02',evidence:'Phones',approximateCount:null},{code:'B02',evidence:'Flip phone',approximateCount:1}]},'broad');
- assert.deepEqual(repeated.items,[{code:'B01',evidence:'Laptop; Desktop tower',approximateCount:2},{code:'B02',evidence:'Phones; Flip phone',approximateCount:null}],'repeats merge; unknown count stays unknown');
+ assert.equal(repeated.items.length,4,'different equipment types sharing a code remain separate');assert.deepEqual(repeated.items.map(x=>x.approximateCount),[1,1,null,1]);
  assert.equal(validateAssessment({...answer,status:'needs_review'},'broad').status,'identified');
  assert.equal(validateAssessment({...answer,items:[],status:'identified'},'broad').status,'needs_review','no items means no category');
  assert.throws(()=>validateAssessment({...answer,status:'nonsense'},'broad'),/invalid assessment/);

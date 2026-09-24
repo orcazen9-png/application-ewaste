@@ -16,8 +16,9 @@ final class MarketplaceScreens {
     final LogisticsScreens logistics;
     final FinanceScreens finance;
     final FacilityScreens facility;
+    final DiscoveryScreens discovery;
     JSONObject state=new JSONObject();
-    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);finance=new FinanceScreens(this);facility=new FacilityScreens(this);}
+    MarketplaceScreens(AccountActivity activity){a=activity;logistics=new LogisticsScreens(this);finance=new FinanceScreens(this);facility=new FacilityScreens(this);discovery=new DiscoveryScreens(this);}
     void put(JSONObject o,String k,Object v){Catalog.put(o,k,v);}
     String view(){return state.optString("view","");}
     JSONObject data(){JSONObject d=state.optJSONObject("data");return d==null?new JSONObject():d;}
@@ -52,6 +53,7 @@ final class MarketplaceScreens {
             catch(AccountApi.Failure error){if(error.status>=400&&error.status<500&&error.status!=401&&error.status!=408&&error.status!=429)a.store.finishMarket(owner);throw error;}
         },result->{String destination=result.optString("destination");JSONObject value=result.optJSONObject("result");
             if(destination.equals("facility")){a.store.cache(a.account(),"facility-draft",new JSONObject());facility.open();}
+            else if(destination.equals("listing"))load("listing","/listings/"+value.optString("id"));
             else if(destination.equals("portfolio"))load("portfolio","/requirements");
             else if(destination.equals("order"))load("order","/orders/"+value.optString("id"));
             else if(destination.equals("finance"))finance.open(value.optString("id"));
@@ -68,6 +70,11 @@ final class MarketplaceScreens {
     void render()throws Exception{
         pending();JSONObject d=data();
         switch(view()){
+            case "directory":discovery.results(d,true);break;
+            case "discover":discovery.results(d,false);break;
+            case "recycler-detail":discovery.recycler(d);break;
+            case "listing":discovery.listing(d);break;
+            case "offer-form":discovery.offerForm(d);break;
             case "facility":facility.render(d);break;
             case "facility-form":facility.form(d);break;
             case "portfolio":portfolio(d);break;
@@ -147,14 +154,15 @@ final class MarketplaceScreens {
         a.label(r.optString("specification"),15);
     }
     String join(JSONArray array,String separator){List<String> items=new ArrayList<>();if(array!=null)for(int i=0;i<array.length();i++)items.add(array.optString(i));return String.join(separator,items);}
-    void findMatches(){
+    void findMatches(){findMatches("");}
+    void findMatches(String facilityId){
         try{
             JSONObject saved=a.store.draft(a.account(),a.draft.getString("id"));if(!saved.optString("syncState").equals("synced")){a.showError(new Exception(a.t("Save this draft online before comparing current requirements.")));return;}
             JSONObject line=a.draft.getJSONArray("items").getJSONObject(a.itemIndex);
             String quantity=line.isNull("quantity")?"":line.optString("quantity");
             EditText amount=new EditText(a);amount.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);amount.setText(quantity);
             new AlertDialog.Builder(a).setTitle(a.t("Quantity to offer (")+line.optString("unit")+")").setView(amount).setPositiveButton(a.t("Find matches"),(d,w)->{
-                try{String path="/matches?lotId="+a.draft.getString("id")+"&itemId="+line.getString("id")+"&quantity="+URLEncoder.encode(amount.getText().toString(),"UTF-8");
+                try{String path="/matches?lotId="+a.draft.getString("id")+"&itemId="+line.getString("id")+"&quantity="+URLEncoder.encode(amount.getText().toString(),"UTF-8")+(facilityId.isEmpty()?"":"&facilityId="+facilityId);
                     JSONObject selection=new JSONObject().put("lotId",a.draft.getString("id")).put("itemId",line.getString("id")).put("quantity",amount.getText().toString()).put("lotVersion",saved.getInt("serverVersion")).put("unit",line.getString("unit"));
                     a.store.cache(a.account(),"market-selection",selection);load("matches",path);
                 }catch(Exception e){a.showError(e);}
@@ -180,8 +188,8 @@ final class MarketplaceScreens {
         textField(d,"ask",a.t("Your proposed total material amount ₹ (optional)"),InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL,12);
         JSONArray modes=r.getJSONArray("modes");String[] names=new String[modes.length()];int selected=0;for(int i=0;i<names.length;i++){names[i]=modes.getString(i);if(names[i].equals(d.optString("mode")))selected=i;}
         a.choices(a.t("Handover option"),names,selected,pos->{put(d,"mode",names[pos]);persist();});
-        a.label(a.t("Submitting shares this lot's photos, the selected material details, quantity and collection area with this recycler. Private lot notes are not shared."),15);
-        a.button(a.t("Share photos and submit request"),"market-submit-request",()->{JSONObject input=Catalog.copy(d);put(input,"requirementId",r.optString("id"));put(input,"requirementVersion",r.optInt("version"));put(input,"sharePhotos",true);input.remove("requirement");change("/requests/"+d.optString("requestId"),"POST",input,"request");});
+        a.label(a.t(d.has("listingVersion")?"Your offer goes to the aggregator. They can accept, decline or counter.":"Submitting shares this lot's photos, the selected material details, quantity and collection area with this recycler. Private lot notes are not shared."),15);
+        a.button(a.t(d.has("listingVersion")?"Send material offer":"Share photos and submit request"),"market-submit-request",()->{JSONObject input=Catalog.copy(d);put(input,"requirementId",r.optString("id"));put(input,"requirementVersion",r.optInt("version"));put(input,"sharePhotos",true);input.remove("requirement");change("/requests/"+d.optString("requestId"),"POST",input,"request");});
     }
     void requests(JSONObject d)throws Exception{
         a.label(a.session.getJSONObject("user").getString("role").equals("recycler")?a.t("Incoming requests"):a.t("My requests"),23);
@@ -191,7 +199,7 @@ final class MarketplaceScreens {
     void requestSummary(JSONObject r)throws Exception{
         JSONObject s=r.getJSONObject("snapshot");a.label(s.optString("lotTitle"),21);a.label(a.t(r.optString("state"))+" · "+r.optString("quantity")+" "+r.optString("unit")+" · "+a.t(r.optString("mode")),16);
         a.label(s.optString("description")+"\n"+s.optString("condition")+" · "+s.optString("locality"),16);
-        a.label(a.t("Collector material proposal: ₹")+s.optString("collectorProposal"),18);a.label(a.t("Original quoted estimate: ₹")+s.optString("estimatedMaterial")+"\nReviewed: "+s.optString("reviewedAt"),14);
+        a.label(a.t("Current material offer: ₹")+(r.isNull("ask")?s.optString("collectorProposal"):r.optString("ask")),18);a.label(a.t("Original quoted estimate: ₹")+s.optString("estimatedMaterial")+"\nReviewed: "+s.optString("reviewedAt"),14);
         a.label(a.t("Logistics is paid separately by recycler. No payment has been recorded."),14);
         JSONArray photos=s.optJSONArray("fileIds");if(photos!=null)for(int i=0;i<photos.length();i++){String photo=photos.getString(i);a.button(a.t("View shared photo ")+(i+1),"market-photo-"+i,()->viewPhoto(r.optString("id"),photo));}
     }
@@ -203,11 +211,16 @@ final class MarketplaceScreens {
             if(recycler){
                 a.button(a.t("Confirm detailed category"),"market-confirm-category",()->chooseCategory(code->{JSONObject input=input(r.optInt("version"));put(input,"code",code);change(base+"/review-category","POST",input,"request");},false));
                 a.button(a.t("Assess shared photo with Gemini"),"market-assess-shared",()->identify(null,r));
-                a.button(a.t("Accept material proposal"),"market-accept",()->new AlertDialog.Builder(a).setTitle(a.t("Accept this request?")).setMessage(a.t("Accept ₹")+r.optJSONObject("snapshot").optString("collectorProposal")+a.t(" for material and reserve the requested quantity. You cover logistics separately. Price can still be revised by agreement.")).setPositiveButton(a.t("Accept"),(dialog,which)->change(base+"/accept","POST",input(r.optInt("version")),"order")).setNegativeButton(a.t("Back"),null).show());
+            }
+            if(!a.account().equals(r.optString("proposedBy",r.optString("collectorId")))){
+                String amount=r.isNull("ask")?r.optJSONObject("snapshot").optString("collectorProposal"):r.optString("ask");
+                a.button(a.t("Accept material proposal"),"market-accept",()->new AlertDialog.Builder(a).setTitle(a.t("Accept this request?")).setMessage(a.t("Accept ₹")+amount+"\n"+a.t("Recycler pays logistics separately. Final price can be revised by agreement and requires a final invoice.")).setPositiveButton(a.t("Accept"),(dialog,which)->{JSONObject input=input(r.optInt("version"));put(input,"offerVersion",r.optInt("offerVersion",1));change(base+"/accept","POST",input,"order");}).setNegativeButton(a.t("Back"),null).show());
                 a.button(a.t("Reject with reason"),"market-reject",()->message(a.t("Reject request"),base+"/reject",r.optInt("version"),"request"));
-            }else a.button(a.t("Withdraw request"),"market-withdraw",()->message(a.t("Withdraw request"),base+"/withdraw",r.optInt("version"),"request"));
+            }
+            a.button(a.t("Send a counteroffer"),"market-counter",()->discovery.quote(r));
+            if(!recycler)a.button(a.t("Withdraw request"),"market-withdraw",()->message(a.t("Withdraw request"),base+"/withdraw",r.optInt("version"),"request"));
             a.button(a.t("Ask or reply to clarification"),"market-clarify",()->message(a.t("Clarification"),base+"/clarify",r.optInt("version"),"request"));
-        }events(d.optJSONArray("events"));
+        }a.button(a.t("Send message"),"market-chat",()->message(a.t("Message to the other party"),base+"/message",r.optInt("version"),"request"));events(d.optJSONArray("events"));
     }
     void orders(JSONObject d)throws Exception{
         a.label(a.t("Shared orders"),23);JSONArray list=d.optJSONArray("orders");if(list==null||list.length()==0)a.label(a.t("No accepted orders loaded."),16);
@@ -231,7 +244,7 @@ final class MarketplaceScreens {
             if(o.optBoolean("canCancel",true))a.button(a.t("Cancel before collection"),"market-cancel",()->message(a.t("Cancel and release reserved stock"),"/orders/"+o.optString("id")+"/cancel",o.optInt("version"),"order"));
         }events(d.optJSONArray("events"));
     }
-    void events(JSONArray events)throws Exception{a.label(a.t("Recent activity"),20);if(events==null)return;for(int i=0;i<events.length();i++){JSONObject e=events.getJSONObject(i);String message=e.optString("message");if(e.optString("kind").equals("category.confirmed")){JSONObject category=new JSONObject(message);message=a.t("Detailed category confirmed: ")+category.getString("code")+" — "+a.t(category.getString("name"));}a.label(a.t(e.optString("kind")).replace('.',' ')+" · "+a.localDate(e.optString("createdAt"))+"\n"+message,14);}}
+    void events(JSONArray events)throws Exception{a.label(a.t("Recent activity"),20);if(events==null)return;for(int i=0;i<events.length();i++){JSONObject e=events.getJSONObject(i);String message=e.optString("message");if(e.optString("kind").equals("category.confirmed")){JSONObject category=new JSONObject(message);message=a.t("Detailed category confirmed: ")+category.getString("code")+" — "+a.t(category.getString("name"));}if(e.optString("kind").equals("quote")){JSONObject q=new JSONObject(message);message="₹"+q.optString("amount")+" · "+q.optString("note");}a.label((a.account().equals(e.optString("actorId"))?a.t("You"):a.t("Other party"))+" · "+a.t(e.optString("kind")).replace('.',' ')+" · "+a.localDate(e.optString("createdAt"))+"\n"+message,14);}}
     void more(JSONObject d,String key){if(d.isNull("nextCursor")||d.optString("nextCursor").isEmpty())return;
         a.button(a.t("Next page"),"market-next",()->{String path=state.optString("path").replaceAll("[?&]after=[^&]*","");load(view(),path+(path.contains("?")?"&":"?")+"after="+d.optString("nextCursor"));});
     }
@@ -253,7 +266,14 @@ final class MarketplaceScreens {
             JSONObject input=new JSONObject().put("fileId",fileId).put("consent",true);if(request!=null)input.put("requestId",request.getString("id"));
             JSONObject result=a.api.request("POST","/assessments/"+reference.getString("id"),token,input);return result.getJSONObject("result");
         },result->{
-            JSONArray items=result.optJSONArray("items");StringBuilder text=new StringBuilder(result.optString("description")).append("\n\n").append(result.optString("uncertainty")).append("\n").append(result.optString("nextPhoto"));
+            JSONArray items=result.optJSONArray("items");
+            if(draft!=null&&items!=null&&items.length()>0){try{
+                JSONObject current=a.store.draft(owner,draft.getString("id"));
+                if(MaterialSuggestions.used(current,fileId)){a.draft=current;a.editStep=1;a.screen="edit";a.render();return;}
+                Runnable apply=()->{try{MaterialSuggestions.apply(current,items,fileId);a.store.save(owner,current);a.draft=current;a.itemIndex=0;a.editStep=1;a.screen="edit";a.render();}catch(Exception error){a.showError(error);}};
+                if(current.optJSONObject("appliedPhotos")!=null&&current.optJSONObject("appliedPhotos").length()>0)new AlertDialog.Builder(a).setTitle(a.t("Are these different items?" )).setMessage(a.t("Another photo was already identified. Add these suggestions only if they show additional items; otherwise keep your existing quantities.")).setPositiveButton(a.t("Add different items"),(di,w)->apply.run()).setNegativeButton(a.t("Keep existing items"),null).show();else apply.run();
+            }catch(Exception error){a.showError(error);}return;}
+            StringBuilder text=new StringBuilder(result.optString("description")).append("\n\n").append(result.optString("uncertainty")).append("\n").append(result.optString("nextPhoto"));
             if(items!=null)for(int i=0;i<items.length();i++)text.append("\n").append(items.optJSONObject(i).optString("code")).append(": ").append(items.optJSONObject(i).optString("evidence"));
             AlertDialog.Builder dialog=new AlertDialog.Builder(a).setTitle(a.t("Review identification")).setMessage(text.toString()).setNegativeButton(a.t("Keep manual selection"),null);
             if(items!=null&&items.length()>0)dialog.setPositiveButton(a.t("Review a suggested category"),(d,w)->{String[] choices=new String[items.length()],labels=new String[items.length()];for(int i=0;i<choices.length;i++){choices[i]=items.optJSONObject(i).optString("code");labels[i]=assessmentLabel(choices[i]);}new AlertDialog.Builder(a).setTitle(a.t("Confirm category")).setItems(labels,(di,pos)->{

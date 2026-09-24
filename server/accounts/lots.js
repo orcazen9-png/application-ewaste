@@ -29,19 +29,20 @@ function normalize(input) {
     if (detailedCode !== null && broadCode !== null && CATALOG.categories.find(c=>c.code===detailedCode).broad_category_id!==broadCode) fail('The detailed category does not belong to this broad group. Review the category.');
     if (!['unknown','unsorted','sorted','damaged'].includes(item.condition)) fail('Choose a valid condition.');
     if (!['needs_review','confirmed'].includes(item.reviewState) || (item.reviewState === 'confirmed' && !broadCode)) fail('Confirm a category or mark it for review.');
-    return {id: itemId, broadCode, detailedCode, description: text(item.description, 1000, 'description'),
+    return {id: itemId, broadCode, detailedCode, name:text(item.name||'',120,'item name'), description: text(item.description, 1000, 'description'),
       condition: item.condition, unit: item.unit, quantityBase: quantityBase(item.quantity, item.unit), reviewState: item.reviewState};
   });
   const fileIds = input.fileIds.map(requireId);
   if (new Set(fileIds).size !== fileIds.length) fail('Duplicate photo.');
-  return {title: text(input.title, 120, 'title'), locality: text(input.locality, 120, 'locality'),
+  const appliedPhotos=Object.fromEntries(fileIds.filter(f=>input.appliedPhotos?.[f]===true).map(f=>[f,true]));
+  return {appliedPhotos,title: text(input.title, 120, 'title'), locality: text(input.locality, 120, 'locality'),
     notes: text(input.notes, 3000, 'notes'), items, fileIds, taxonomyVersion: CATALOG.version};
 }
 
 function project(lot, items, files) {
   return {id: lot.id, title: lot.title, locality: lot.locality, notes: lot.notes, status: lot.status, version: lot.version,
-    taxonomyVersion: CATALOG.version, createdAt: lot.created_at, updatedAt: lot.updated_at, fileIds: files.map(f => f.file_id),
-    items: items.map(i => ({id: i.id, broadCode: i.broad_code, detailedCode: i.detailed_code, description: i.description,
+    appliedPhotos:JSON.parse(lot.assessment_photos_json||'{}'),taxonomyVersion: CATALOG.version, createdAt: lot.created_at, updatedAt: lot.updated_at, fileIds: files.map(f => f.file_id),
+    items: items.map(i => ({id: i.id, name:i.name, broadCode: i.broad_code, detailedCode: i.detailed_code, description: i.description,
       condition: i.condition, unit: i.unit, quantity: i.quantity_base === null ? null : i.unit === 'kg'
         ? `${Math.floor(i.quantity_base/1000)}.${String(i.quantity_base%1000).padStart(3,'0')}` : String(i.quantity_base),
       reviewState: i.review_state}))};
@@ -100,10 +101,11 @@ export async function lotRoute(request, env, user, lotId) {
     .bind(lotId, user.id, normalized.title, normalized.locality, normalized.notes, input.commandId, time, time, user.id, input.expectedVersion),
   env.DB.prepare(`DELETE FROM lot_items WHERE lot_id=? AND ${guard}`).bind(lotId, ...guardArgs),
   env.DB.prepare(`DELETE FROM lot_files WHERE lot_id=? AND ${guard}`).bind(lotId, ...guardArgs)];
+  writes.push(env.DB.prepare(`UPDATE lots SET assessment_photos_json=? WHERE id=? AND ${guard}`).bind(JSON.stringify(normalized.appliedPhotos),lotId,...guardArgs));
   for (const item of normalized.items) writes.push(env.DB.prepare(`INSERT INTO lot_items
-    (lot_id,id,taxonomy_version,broad_code,detailed_code,description,condition,unit,quantity_base,review_state)
-    SELECT ?,?,?,?,?,?,?,?,?,? WHERE ${guard}`).bind(lotId, item.id, CATALOG.version, item.broadCode, item.detailedCode,
-      item.description, item.condition, item.unit, item.quantityBase, item.reviewState, ...guardArgs));
+    (lot_id,id,taxonomy_version,broad_code,detailed_code,description,condition,unit,quantity_base,review_state,name)
+    SELECT ?,?,?,?,?,?,?,?,?,?,? WHERE ${guard}`).bind(lotId, item.id, CATALOG.version, item.broadCode, item.detailedCode,
+      item.description, item.condition, item.unit, item.quantityBase, item.reviewState, item.name, ...guardArgs));
   for (const fileId of normalized.fileIds) writes.push(env.DB.prepare(`INSERT INTO lot_files (lot_id,file_id) SELECT ?,? WHERE ${guard}`).bind(lotId,fileId,...guardArgs));
   writes.push(env.DB.prepare(`INSERT INTO audit_events (id,actor_id,action,resource_id,resource_version,created_at)
     SELECT ?,?,'draft.saved',?,?,? WHERE ${guard}`).bind(id(),user.id,lotId,version,time,...guardArgs));
