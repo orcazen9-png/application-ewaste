@@ -14,7 +14,7 @@ function filters(request){const q=new URL(request.url).searchParams,point=q.has(
  const code=q.get('material')||'';if(code&&!CATALOG.broad_categories.some(c=>c.id===code))fail('Choose a valid material.');
  return {point,radius,page,code,search:text(q.get('search')||'',120,'search'),pickup:q.get('pickup')==='true'};}
 function distance(point,lat,lon){if(!point)return 'NULL';const x=111.32*Math.cos(point.latitude*Math.PI/180);return `((${lat}-${point.latitude})*(${lat}-${point.latitude})*12392.1424+(${lon}-${point.longitude})*(${lon}-${point.longitude})*${x*x})`;}
-const activeAuthorization=`p.status='approved' AND p.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.status='verified' AND a.submission_version=p.submitted_version AND a.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND u.status='active' AND json_extract(p.profile_json,'$.directoryConsent')=1`;
+const activeAuthorization=`f.verification_status='verified' AND p.status='approved' AND p.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND a.status='verified' AND a.submission_version=p.submitted_version AND a.valid_until>strftime('%Y-%m-%dT%H:%M:%fZ','now') AND u.status='active' AND json_extract(p.profile_json,'$.directoryConsent')=1`;
 const directoryFrom=`FROM facilities f JOIN organizations o ON o.id=f.organization_id JOIN users u ON u.id=o.owner_user_id JOIN facility_profiles p ON p.facility_id=f.id JOIN directory_authorizations a ON a.facility_id=f.id`;
 async function directory(request,env,user,record){
  requireRole(user,'collector');const q=filters(request),lat="json_extract(p.profile_json,'$.location.latitude')",lon="json_extract(p.profile_json,'$.location.longitude')",dist=distance(q.point,lat,lon);

@@ -20,14 +20,15 @@ final class DiscoveryScreens {
  void search(boolean directory,int page){JSONObject f=filter();String path=(directory?"/directory":"/listings")+"?page="+page+"&search="+enc(f.optString("search"))+"&material="+enc(f.optString("material"));JSONObject point=f.optJSONObject("location");if(point!=null)path+="&lat="+point.optDouble("latitude")+"&lon="+point.optDouble("longitude")+"&radius="+f.optInt("radius",50);if(directory&&f.optBoolean("pickup"))path+="&pickup=true";m.load(directory?"directory":"discover",path);}
  void filters(boolean directory)throws Exception{JSONObject f=filter();LinearLayout card=ui.card(a.page,AccountDesign.WHITE);ui.inside(card,()->{
   a.field(a.t("Search name, city or area"),f.optString("search"),"discovery-search",InputType.TYPE_CLASS_TEXT,120,v->{m.put(f,"search",v);remember(f);});
-  String[] names=new String[Catalog.NAMES.length+1];names[0]=a.t("All materials");System.arraycopy(Catalog.NAMES,0,names,1,Catalog.NAMES.length);int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(f.optString("material")))selected=i+1;
+  if(f.optBoolean("expanded")){String[] names=new String[Catalog.NAMES.length+1];names[0]=a.t("All materials");System.arraycopy(Catalog.NAMES,0,names,1,Catalog.NAMES.length);int selected=0;for(int i=0;i<Catalog.NAMES.length;i++)if(Catalog.code(i).equals(f.optString("material")))selected=i+1;
   a.choices(a.t("Material"),names,selected,pos->{m.put(f,"material",pos==0?"":Catalog.code(pos-1));remember(f);});
   if(directory){CheckBox pickup=new CheckBox(a);pickup.setText(a.t("Pickup available"));pickup.setChecked(f.optBoolean("pickup"));card.addView(pickup);pickup.setOnCheckedChangeListener((b,on)->{m.put(f,"pickup",on);remember(f);});}
-  a.choices(a.t("Search radius"),new String[]{"10 km","25 km","50 km","100 km","250 km","500 km"},Arrays.asList(10,25,50,100,250,500).indexOf(f.optInt("radius",50)),pos->{m.put(f,"radius",new int[]{10,25,50,100,250,500}[pos]);remember(f);});
+  a.choices(a.t("Search radius"),new String[]{"10 km","25 km","50 km","100 km","250 km","500 km"},Arrays.asList(10,25,50,100,250,500).indexOf(f.optInt("radius",50)),pos->{m.put(f,"radius",new int[]{10,25,50,100,250,500}[pos]);remember(f);});}
  });
- ui.action(card,a.t("Use my location"),"discovery-gps",()->a.nearby.get(point->{m.put(f,"location",point);remember(f);search(directory,0);}),0);
+ ui.action(card,a.t(f.optBoolean("expanded")?"Hide filters":"Material, distance and pickup filters"),"discovery-filters",()->{m.put(f,"expanded",!f.optBoolean("expanded"));remember(f);a.render();},0);
+ LinearLayout actions=ui.row();card.addView(actions);Button gps=ui.action(actions,a.t("Use my location"),"discovery-gps",()->a.nearby.get(point->{m.put(f,"location",point);remember(f);search(directory,0);}),0);LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(0,-2,1);gp.rightMargin=a.dp(6);gps.setLayoutParams(gp);
+ Button search=ui.action(actions,a.t("Search"),"discovery-apply",()->search(directory,0),1);search.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));
  if(f.optJSONObject("location")!=null){ui.note(card,a.t("Approximate distance from your selected location"));ui.action(card,a.t("Clear location"),"discovery-clear-location",()->{f.remove("location");remember(f);search(directory,0);},0);}
- ui.action(card,a.t("Search"),"discovery-apply",()->search(directory,0),1);
  }
  String distance(JSONObject d){return d.isNull("distanceKm")?"":a.t("About ")+d.optInt("distanceKm")+" km";}
  void results(JSONObject d,boolean directory)throws Exception{
