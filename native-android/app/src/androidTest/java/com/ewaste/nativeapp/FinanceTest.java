@@ -40,7 +40,7 @@ public class FinanceTest {
  @Test public void translatedCategorySelectionStoresCanonicalCodeAndLeavesEnteredTextUntouched()throws Exception{
   SessionVault vault=new SessionVault(context);JSONObject previous=vault.read();
   try{for(String lang:new String[]{"hi","mr"}){FinApi api=new FinApi();api.user.put("language",lang);signIn(api);try(ActivityScenario<AccountActivity> s=ActivityScenario.launch(AccountActivity.class)){
-   idle(s);s.onActivity(a->{a.createDraft();for(int i=0;i<a.page.getChildCount();i++)if(a.page.getChildAt(i) instanceof Spinner){Spinner categories=(Spinner)a.page.getChildAt(i);assertEquals(lang.equals("hi")?"कंप्यूटर और लैपटॉप":"संगणक आणि लॅपटॉप",categories.getAdapter().getItem(1));categories.setSelection(1);break;}});idle(s);
+   idle(s);s.onActivity(a->{a.createDraft();a.root.findViewWithTag("lot-next").performClick();{Spinner categories=(Spinner)a.root.findViewWithTag("account-category");assertEquals(lang.equals("hi")?"कंप्यूटर और लैपटॉप":"संगणक आणि लॅपटॉप",categories.getAdapter().getItem(1));categories.setSelection(1);}});idle(s);
    s.onActivity(a->{assertEquals("B01",a.draft.optJSONArray("items").optJSONObject(0).optString("broadCode"));a.label("pending",15);assertEquals("pending",((TextView)a.page.getChildAt(a.page.getChildCount()-1)).getText().toString());assertFalse(a.t("Notebook Computers").equals("Notebook Computers"));});
   }}}finally{AccountActivity.apiFactory=AccountApi::new;if(previous==null)vault.clear();else vault.save(previous);}
  }

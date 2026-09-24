@@ -90,11 +90,12 @@ public class AccountFoundationTest {
             scenario.onActivity(a->{nativeOnly(a.root);((EditText)a.root.findViewWithTag("account-phone")).setText("9000000001");a.root.findViewWithTag("account-send-code").performClick();});waitIdle(scenario);
             scenario.onActivity(a->{((EditText)a.root.findViewWithTag("account-code")).setText("123456");a.root.findViewWithTag("account-verify").performClick();});waitIdle(scenario);
             scenario.onActivity(a->{assertEquals(fake.user.optString("id"),a.account());a.root.findViewWithTag("account-create").performClick();
-                ((EditText)a.root.findViewWithTag("account-lot-title")).setText("My native laptop draft");
+                assertNull("Photo actions precede the form",a.root.findViewWithTag("account-lot-title"));
                 assertNotNull(a.root.findViewWithTag("account-take-photo"));assertNotNull(a.root.findViewWithTag("account-choose-photo"));
                 try{File image=new File(a.getCacheDir(),"account-test-photo.jpg");Bitmap bitmap=Bitmap.createBitmap(100,60,Bitmap.Config.ARGB_8888);bitmap.eraseColor(0xff125b46);try(FileOutputStream out=new FileOutputStream(image)){bitmap.compress(Bitmap.CompressFormat.JPEG,90,out);}bitmap.recycle();a.processPhoto(Uri.fromFile(image),a.account(),a.draft.getString("id"));}catch(Exception e){throw new AssertionError(e);}
             });waitIdle(scenario);scenario.recreate();waitIdle(scenario);
-            scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(1,a.draft.optJSONArray("fileIds").length());a.root.findViewWithTag("account-save-online").performClick();});waitIdle(scenario);
+            scenario.onActivity(a->{assertEquals(1,a.draft.optJSONArray("fileIds").length());assertEquals(0,a.editStep);a.root.findViewWithTag("lot-next").performClick();((EditText)a.root.findViewWithTag("account-lot-title")).setText("My native laptop draft");((EditText)a.root.findViewWithTag("account-lot-quantity")).setText("1");((android.widget.Spinner)a.root.findViewWithTag("account-category")).setSelection(1);});waitIdle(scenario);
+            scenario.onActivity(a->{a.root.findViewWithTag("lot-next").performClick();assertEquals(2,a.editStep);a.root.findViewWithTag("account-save-online").performClick();});waitIdle(scenario);
             scenario.onActivity(a->{try{assertEquals("synced",a.store.draft(a.account(),a.draft.getString("id")).getString("syncState"));assertEquals(1,fake.uploads);nativeOnly(a.root);}catch(Exception e){throw new AssertionError(e);}});
             scenario.recreate();waitIdle(scenario);scenario.onActivity(a->{assertEquals("My native laptop draft",a.draft.optString("title"));assertEquals(fake.user.optString("id"),a.account());});
             // Keep the CI screenshot outside app storage, which test cleanup can remove.

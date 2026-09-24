@@ -84,7 +84,7 @@ final class MarketplaceScreens {
             if(d.has("fetchedAt"))a.label(a.t("Last checked: ")+a.localDate(d.optString("fetchedAt")),12);
             a.button(a.t("Refresh"),"market-refresh",this::refresh);
         }
-        a.button(a.t("Home"),"market-home",this::back);
+        // Home and primary destinations remain available in the bottom navigation.
     }
     void catalogue(Runnable ready){
         try{if(a.store.cached(a.account(),"catalogue")!=null){ready.run();return;}}catch(Exception e){a.showError(e);return;}
@@ -243,7 +243,7 @@ final class MarketplaceScreens {
         a.task(()->{
             JSONObject reference=a.store.cached(owner,key);if(reference==null){reference=new JSONObject().put("id",UUID.randomUUID().toString());a.store.cache(owner,key,reference);}
             else {try{JSONObject prior=a.api.request("GET","/assessments/"+reference.getString("id"),token,null);if(prior.optString("state").equals("ready"))return prior.getJSONObject("result");if(prior.optString("state").equals("failed")){reference=new JSONObject().put("id",UUID.randomUUID().toString());a.store.cache(owner,key,reference);}}catch(AccountApi.Failure error){if(error.status!=404)throw error;}}
-            if(draft!=null)new AccountSync(a.store,a.api).save(owner,token,draft.getString("id"));
+            if(draft!=null&&!a.store.uploaded(owner,fileId)){a.api.upload(a.store.photo(owner,fileId),fileId,token);a.store.markUploaded(owner,fileId);}
             JSONObject input=new JSONObject().put("fileId",fileId).put("consent",true);if(request!=null)input.put("requestId",request.getString("id"));
             JSONObject result=a.api.request("POST","/assessments/"+reference.getString("id"),token,input);return result.getJSONObject("result");
         },result->{
@@ -251,7 +251,7 @@ final class MarketplaceScreens {
             if(items!=null)for(int i=0;i<items.length();i++)text.append("\n").append(items.optJSONObject(i).optString("code")).append(": ").append(items.optJSONObject(i).optString("evidence"));
             AlertDialog.Builder dialog=new AlertDialog.Builder(a).setTitle(a.t("Review identification")).setMessage(text.toString()).setNegativeButton(a.t("Keep manual selection"),null);
             if(items!=null&&items.length()>0)dialog.setPositiveButton(a.t("Review a suggested category"),(d,w)->{String[] choices=new String[items.length()];for(int i=0;i<choices.length;i++)choices[i]=items.optJSONObject(i).optString("code");new AlertDialog.Builder(a).setTitle(a.t("Confirm category")).setItems(choices,(di,pos)->{
-                if(draft!=null){try{JSONObject current=a.store.draft(owner,draft.getString("id")),line=current.getJSONArray("items").getJSONObject(a.itemIndex);if(!line.optString("broadCode").equals(choices[pos]))line.put("detailedCode",JSONObject.NULL);line.put("broadCode",choices[pos]).put("reviewState","confirmed");a.store.save(owner,current);a.draft=current;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}}
+                if(draft!=null){try{JSONObject current=a.store.draft(owner,draft.getString("id")),line=current.getJSONArray("items").getJSONObject(a.itemIndex);if(!line.optString("broadCode").equals(choices[pos]))line.put("detailedCode",JSONObject.NULL);line.put("broadCode",choices[pos]).put("reviewState","confirmed");a.store.save(owner,current);a.draft=current;a.editStep=1;a.screen="edit";a.render();}catch(Exception e){a.showError(e);}}
                 else {JSONObject input=input(request.optInt("version"));put(input,"code",choices[pos]);change("/requests/"+request.optString("id")+"/review-category","POST",input,"request");}
             }).setNegativeButton(a.t("Back"),null).show();});dialog.show();
         });
